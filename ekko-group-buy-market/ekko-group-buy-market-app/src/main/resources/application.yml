@@ -1,0 +1,5 @@
+spring:
+  config:
+    name: ekko-group-buy-market-app
+  profiles:
+    active: dev

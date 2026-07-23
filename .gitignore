@@ -1,0 +1,50 @@
+# Local archives are intentionally retained on this machine only.
+/file/
+
+# IDE and operating-system files
+.DS_Store
+**/.idea/
+**/*.iml
+**/*.ipr
+**/*.iws
+
+# Java and Maven build output
+**/target/
+**/*.class
+**/*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+**/*.hprof
+
+# Logs and runtime data
+**/*.log
+**/logs/
+**/log/
+**/data/
+**/mysql-data/
+**/redis-data/
+**/rabbitmq-data/
+**/grafana-data/
+
+# Local environment configuration and secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/application-local.yml
+**/application-secret.yml
+**/*-secret.yml
+**/application-dev.yml
+**/application-test.yml
+**/application-prod.yml
+!**/application-*.example.yml
+**/secrets/
+
+# Frontend dependencies and local build output
+**/node_modules/
+**/dist/
+**/.vite/
+**/.next/
+
+# Temporary files
+**/*.swp
+**/*.swo
+**/*~
