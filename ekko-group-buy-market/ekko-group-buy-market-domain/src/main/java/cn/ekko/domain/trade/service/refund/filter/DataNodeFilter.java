@@ -5,10 +5,10 @@ import cn.ekko.domain.trade.model.entity.GroupBuyTeamEntity;
 import cn.ekko.domain.trade.model.entity.MarketPayOrderEntity;
 import cn.ekko.domain.trade.model.entity.TradeRefundBehaviorEntity;
 import cn.ekko.domain.trade.model.entity.TradeRefundCommandEntity;
-import cn.ekko.domain.trade.model.valobj.TradeOrderStatusEnumVO;
 import cn.ekko.domain.trade.service.refund.factory.TradeRefundRuleFilterFactory;
-import cn.ekko.types.enums.GroupBuyOrderEnumVO;
 import cn.ekko.types.design.framework.link.model2.handler.ILogicHandler;
+import cn.ekko.types.enums.ResponseCode;
+import cn.ekko.types.exception.AppException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -31,11 +31,23 @@ public class DataNodeFilter implements ILogicHandler<TradeRefundCommandEntity, T
         log.info("逆向流程-退单操作，数据加载节点 userId:{} outTradeNo:{}", tradeRefundCommandEntity.getUserId(), tradeRefundCommandEntity.getOutTradeNo());
 
         // 1. 查询外部交易单，组队id、orderId、拼团状态
-        MarketPayOrderEntity marketPayOrderEntity = repository.queryMarketPayOrderEntityByOutTradeNo(tradeRefundCommandEntity.getUserId(), tradeRefundCommandEntity.getOutTradeNo());
+        MarketPayOrderEntity marketPayOrderEntity = repository.queryMarketPayOrderEntityByOutTradeNo(
+                tradeRefundCommandEntity.getUserId(),
+                tradeRefundCommandEntity.getOutTradeNo(),
+                tradeRefundCommandEntity.getSource(),
+                tradeRefundCommandEntity.getChannel());
+        if (null == marketPayOrderEntity) {
+            throw new AppException(ResponseCode.E0104);
+        }
         String teamId = marketPayOrderEntity.getTeamId();
 
         // 2. 查询拼团状态
         GroupBuyTeamEntity groupBuyTeamEntity = repository.queryGroupBuyTeamByTeamId(teamId);
+        if (null == groupBuyTeamEntity) {
+            throw new AppException(
+                    ResponseCode.E0104.getCode(),
+                    "拼团队伍不存在");
+        }
 
         // 3. 写入上下文；如果查询数据是比较多的，可以参考 MarketNode2CompletableFuture 通过多线程进行加载
         dynamicContext.setMarketPayOrderEntity(marketPayOrderEntity);

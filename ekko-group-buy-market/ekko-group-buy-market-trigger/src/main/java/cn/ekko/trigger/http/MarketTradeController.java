@@ -301,9 +301,11 @@ public class MarketTradeController implements IMarketTradeService {
     @Override
     public Response<RefundMarketPayOrderResponseDTO> refundMarketPayOrder(@RequestBody RefundMarketPayOrderRequestDTO requestDTO) {
         try {
-            log.info("营销拼团退单开始:{} outTradeNo:{}", requestDTO.getUserId(), requestDTO.getOutTradeNo());
+            log.info("营销拼团退单开始:{} outTradeNo:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(),
+                    null == requestDTO ? null : requestDTO.getOutTradeNo());
 
-            if (StringUtils.isBlank(requestDTO.getUserId()) || StringUtils.isBlank(requestDTO.getOutTradeNo()) || StringUtils.isBlank(requestDTO.getSource()) || StringUtils.isBlank(requestDTO.getChannel())) {
+            if (null == requestDTO || StringUtils.isBlank(requestDTO.getUserId()) || StringUtils.isBlank(requestDTO.getOutTradeNo()) || StringUtils.isBlank(requestDTO.getSource()) || StringUtils.isBlank(requestDTO.getChannel())) {
                 return Response.<RefundMarketPayOrderResponseDTO>builder()
                         .code(ResponseCode.ILLEGAL_PARAMETER.getCode())
                         .info(ResponseCode.ILLEGAL_PARAMETER.getInfo())
@@ -337,13 +339,15 @@ public class MarketTradeController implements IMarketTradeService {
 
             return response;
         } catch (AppException e) {
-            log.error("营销拼团退单异常:{} RefundMarketPayOrderRequestDTO:{}", requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
+            log.error("营销拼团退单异常:{} RefundMarketPayOrderRequestDTO:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
             return Response.<RefundMarketPayOrderResponseDTO>builder()
                     .code(e.getCode())
                     .info(e.getInfo())
                     .build();
         } catch (Exception e) {
-            log.error("营销拼团退单失败:{} RefundMarketPayOrderRequestDTO:{}", requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
+            log.error("营销拼团退单失败:{} RefundMarketPayOrderRequestDTO:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
             return Response.<RefundMarketPayOrderResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

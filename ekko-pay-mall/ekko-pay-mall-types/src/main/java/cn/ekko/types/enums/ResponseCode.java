@@ -18,6 +18,9 @@ public enum ResponseCode {
     GROUP_BUY_BUSINESS_ERROR("1003", "拼团营销业务处理失败"),
     GROUP_BUY_INVALID_RESPONSE("1004", "拼团营销返回数据不完整"),
     ORDER_PAY_AMOUNT_ERROR("1005", "订单支付金额无效"),
+    AUTH_REQUIRED("1006", "请先登录或重新登录"),
+    ORDER_NOT_FOUND("1007", "订单不存在或不属于当前用户"),
+    ORDER_STATUS_ERROR("1008", "当前订单状态不允许退单"),
     ;
 
     private String code;

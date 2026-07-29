@@ -7,6 +7,10 @@ spring:
 server:
   port: ${SERVER_PORT:8092}
 
+auth:
+  # 必须由部署环境提供；为空时不签发也不接受登录令牌
+  jwt-secret: ${AUTH_JWT_SECRET:}
+
 # 非敏感的拼团服务连接入口；各环境可使用环境变量覆盖
 group-buy-market:
   api-url: ${GROUP_BUY_MARKET_API_URL:http://127.0.0.1:8091/}

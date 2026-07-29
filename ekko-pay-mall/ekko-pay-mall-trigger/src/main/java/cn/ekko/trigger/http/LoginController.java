@@ -48,13 +48,13 @@ public class LoginController {
     @RequestMapping(value = "check_login", method = RequestMethod.GET)
     public Response<String> checkLogin(@RequestParam String ticket) {
         try {
-            String openidToken = loginService.checkLogin(ticket);
-            log.info("扫描检测登录结果 ticket:{} openidToken:{}", ticket, openidToken);
-            if (StringUtils.isNotBlank(openidToken)) {
+            String loginToken = loginService.checkLogin(ticket);
+            log.info("扫描检测登录结果 ticket:{} loginSuccess:{}", ticket, StringUtils.isNotBlank(loginToken));
+            if (StringUtils.isNotBlank(loginToken)) {
                 return Response.<String>builder()
                         .code(Constants.ResponseCode.SUCCESS.getCode())
                         .info(Constants.ResponseCode.SUCCESS.getInfo())
-                        .data(openidToken)
+                        .data(loginToken)
                         .build();
             } else {
                 return Response.<String>builder()

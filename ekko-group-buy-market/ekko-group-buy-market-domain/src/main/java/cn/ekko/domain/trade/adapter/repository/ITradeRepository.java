@@ -20,6 +20,13 @@ public interface ITradeRepository {
 
     MarketPayOrderEntity queryMarketPayOrderEntityByOutTradeNo(String userId, String outTradeNo);
 
+    /** 退单专用查询，同时校验商城来源和渠道。 */
+    MarketPayOrderEntity queryMarketPayOrderEntityByOutTradeNo(
+            String userId,
+            String outTradeNo,
+            String source,
+            String channel);
+
     MarketPayOrderEntity lockMarketPayOrder(GroupBuyOrderAggregate groupBuyOrderAggregate);
 
     GroupBuyProgressVO queryGroupBuyProgress(String teamId);

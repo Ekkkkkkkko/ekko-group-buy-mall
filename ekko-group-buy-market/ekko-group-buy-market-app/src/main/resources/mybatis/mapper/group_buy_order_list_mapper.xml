@@ -43,6 +43,12 @@
         end_time, goods_id, source, channel, original_price, deduction_price, pay_price, status
         from group_buy_order_list
         where out_trade_no = #{outTradeNo} and user_id = #{userId}
+        <if test="source != null and source != ''">
+            and source = #{source}
+        </if>
+        <if test="channel != null and channel != ''">
+            and channel = #{channel}
+        </if>
     </select>
 
     <select id="queryOrderCountByActivityId" parameterType="cn.ekko.infrastructure.dao.po.GroupBuyOrderList"

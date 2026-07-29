@@ -19,10 +19,16 @@ import java.util.Date;
 @NoArgsConstructor
 public class PayOrderEntity {
 
+    /** 自增ID，用于订单列表游标。 */
+    private Long id;
     /** 用户ID */
     private String userId;
+    private String productId;
+    private String productName;
     /** 订单ID */
     private String orderId;
+    private Date orderTime;
+    private BigDecimal totalAmount;
     /** 支付地址；创建支付后，获得支付信息；*/
     private String payUrl;
     /** 订单状态；0-创建完成、1-等待支付、2-支付成功、3-交易完成、4-订单关单 */

@@ -15,9 +15,28 @@ public interface IOrderDao {
 
     int updateOrderMarketInfo(PayOrder order);
 
-    void updateOrderPayInfo(PayOrder order);
+    int updateOrderPayInfo(PayOrder order);
 
     PayOrder queryOrderByOrderId(String orderId);
+
+    PayOrder queryOrderByUserIdAndOrderId(
+            @Param("userId") String userId,
+            @Param("orderId") String orderId);
+
+    List<PayOrder> queryUserOrderList(
+            @Param("userId") String userId,
+            @Param("lastId") Long lastId,
+            @Param("limit") int limit);
+
+    int refundMarketOrder(
+            @Param("userId") String userId,
+            @Param("orderId") String orderId,
+            @Param("expectedStatus") String expectedStatus);
+
+    int refundOrder(
+            @Param("userId") String userId,
+            @Param("orderId") String orderId,
+            @Param("expectedStatus") String expectedStatus);
 
     int changeOrderPaySuccess(PayOrder order);
 
@@ -37,6 +56,6 @@ public interface IOrderDao {
 
     List<String> queryTimeoutCloseOrderList();
 
-    boolean changeOrderClose(String orderId);
+    int changeOrderClose(String orderId);
 
 }

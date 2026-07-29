@@ -69,9 +69,20 @@ public class TradeRepository implements ITradeRepository {
 
     @Override
     public MarketPayOrderEntity queryMarketPayOrderEntityByOutTradeNo(String userId, String outTradeNo) {
+        return queryMarketPayOrderEntityByOutTradeNo(userId, outTradeNo, null, null);
+    }
+
+    @Override
+    public MarketPayOrderEntity queryMarketPayOrderEntityByOutTradeNo(
+            String userId,
+            String outTradeNo,
+            String source,
+            String channel) {
         GroupBuyOrderList groupBuyOrderListReq = new GroupBuyOrderList();
         groupBuyOrderListReq.setUserId(userId);
         groupBuyOrderListReq.setOutTradeNo(outTradeNo);
+        groupBuyOrderListReq.setSource(source);
+        groupBuyOrderListReq.setChannel(channel);
         GroupBuyOrderList groupBuyOrderListRes = groupBuyOrderListDao.queryGroupBuyOrderRecordByOutTradeNo(groupBuyOrderListReq);
         if (null == groupBuyOrderListRes) return null;
 
@@ -212,6 +223,7 @@ public class TradeRepository implements ITradeRepository {
     @Override
     public GroupBuyTeamEntity queryGroupBuyTeamByTeamId(String teamId) {
         GroupBuyOrder groupBuyOrder = groupBuyOrderDao.queryGroupBuyTeamByTeamId(teamId);
+        if (null == groupBuyOrder) return null;
         return GroupBuyTeamEntity.builder()
                 .teamId(groupBuyOrder.getTeamId())
                 .activityId(groupBuyOrder.getActivityId())
@@ -550,8 +562,6 @@ public class TradeRepository implements ITradeRepository {
     public NotifyTaskEntity paidTeam2Refund(GroupBuyRefundAggregate groupBuyRefundAggregate) {
         TradeRefundOrderEntity tradeRefundOrderEntity = groupBuyRefundAggregate.getTradeRefundOrderEntity();
         GroupBuyProgressVO groupBuyProgress = groupBuyRefundAggregate.getGroupBuyProgress();
-        GroupBuyOrderEnumVO groupBuyOrderEnumVO = groupBuyRefundAggregate.getGroupBuyOrderEnumVO();
-
         GroupBuyOrderList groupBuyOrderListReq = new GroupBuyOrderList();
         // 保留userId，企业中往往会根据 userId 作为分库分表路由键，如果将来做分库分表也可以方便处理
         groupBuyOrderListReq.setUserId(tradeRefundOrderEntity.getUserId());
@@ -568,19 +578,11 @@ public class TradeRepository implements ITradeRepository {
         groupBuyOrderReq.setLockCount(groupBuyProgress.getLockCount());
         groupBuyOrderReq.setCompleteCount(groupBuyProgress.getCompleteCount());
 
-        // 根据拼团组队量更新状态。组队最后一个人->更新组队失败，组队还有其他人->更新组队完成含退单
-        if (GroupBuyOrderEnumVO.COMPLETE_FAIL.equals(groupBuyOrderEnumVO)) {
-            int updateTeamPaid2Refund = groupBuyOrderDao.paidTeam2Refund(groupBuyOrderReq);
-            if (1 != updateTeamPaid2Refund) {
-                log.error("逆向流程-paidTeam2Refund，更新组队记录(退单)失败 {} {}", tradeRefundOrderEntity.getUserId(), tradeRefundOrderEntity.getOrderId());
-                throw new AppException(ResponseCode.UPDATE_ZERO);
-            }
-        } else if (GroupBuyOrderEnumVO.FAIL.equals(groupBuyOrderEnumVO)){
-            int updateTeamPaid2RefundFail = groupBuyOrderDao.paidTeam2RefundFail(groupBuyOrderReq);
-            if (1 != updateTeamPaid2RefundFail) {
-                log.error("逆向流程-updateTeamPaid2RefundFail，更新组队记录(退单)失败 {} {}", tradeRefundOrderEntity.getUserId(), tradeRefundOrderEntity.getOrderId());
-                throw new AppException(ResponseCode.UPDATE_ZERO);
-            }
+        // 在一条SQL中根据更新前complete_count决定主团状态，避免并发退单基于过期快照选错分支。
+        int updateTeamPaid2Refund = groupBuyOrderDao.paidTeam2Refund(groupBuyOrderReq);
+        if (1 != updateTeamPaid2Refund) {
+            log.error("逆向流程-paidTeam2Refund，更新组队记录(退单)失败 {} {}", tradeRefundOrderEntity.getUserId(), tradeRefundOrderEntity.getOrderId());
+            throw new AppException(ResponseCode.UPDATE_ZERO);
         }
 
         // 本地消息任务表
@@ -611,6 +613,7 @@ public class TradeRepository implements ITradeRepository {
                 .notifyMQ(notifyTask.getNotifyMQ())
                 .notifyCount(notifyTask.getNotifyCount())
                 .parameterJson(notifyTask.getParameterJson())
+                .uuid(notifyTask.getUuid())
                 .build();
     }
 
@@ -625,7 +628,7 @@ public class TradeRepository implements ITradeRepository {
         String lockKey = "refund_lock_" + orderId;
         
         // 尝试获取分布式锁，防止重复操作 30天过期
-        Boolean lockAcquired = redisService.setNx(lockKey, 30 * 24 * 60 * 60 * 1000L, TimeUnit.MINUTES);
+        Boolean lockAcquired = redisService.setNx(lockKey, 30, TimeUnit.DAYS);
         
         if (!lockAcquired) {
             log.warn("订单 {} 恢复库存操作已在进行中，跳过重复操作", orderId);

@@ -89,6 +89,10 @@ public class OrderService extends AbstractOrderService {
         boolean firstPaySuccess = 1 == updateCount;
         if (0 == updateCount) {
             payOrder = repository.queryOrderByOrderId(orderId);
+            if (null != payOrder && OrderStatusVO.WAIT_REFUND.equals(payOrder.getOrderStatus())) {
+                log.info("待退款订单收到重复支付成功回调，仅确认回调成功，不重新结算或履约 orderId:{}", orderId);
+                return true;
+            }
             if (null == payOrder || !isPaidStatus(payOrder.getOrderStatus())) {
                 log.warn("支付成功条件更新为0且订单状态异常，停止后续副作用 orderId:{} status:{}",
                         orderId, null == payOrder ? null : payOrder.getOrderStatus());
@@ -170,6 +174,66 @@ public class OrderService extends AbstractOrderService {
             throw new AppException(ResponseCode.UN_ERROR.getCode(), "履约完成更新影响行数异常：" + updateCount);
         }
         return true;
+    }
+
+    @Override
+    public List<PayOrderEntity> queryUserOrderList(String userId, Long lastId, int limit) {
+        if (null == userId || userId.isBlank() || limit < 1 || limit > 51
+                || (null != lastId && lastId <= 0)) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "订单列表分页参数不合法");
+        }
+        return repository.queryUserOrderList(userId, lastId, limit);
+    }
+
+    @Override
+    public PayOrderEntity refundOrder(String userId, String orderId) {
+        if (null == userId || userId.isBlank() || null == orderId || orderId.isBlank()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "用户ID和订单号不能为空");
+        }
+
+        PayOrderEntity order = repository.queryOrderByUserIdAndOrderId(userId, orderId);
+        if (null == order) {
+            throw new AppException(ResponseCode.ORDER_NOT_FOUND.getCode(), ResponseCode.ORDER_NOT_FOUND.getInfo());
+        }
+
+        OrderStatusVO originalStatus = order.getOrderStatus();
+        if (OrderStatusVO.CLOSE.equals(originalStatus)
+                || OrderStatusVO.WAIT_REFUND.equals(originalStatus)) {
+            return order;
+        }
+
+        boolean unpaid = OrderStatusVO.CREATE.equals(originalStatus)
+                || OrderStatusVO.PAY_WAIT.equals(originalStatus);
+        boolean paid = OrderStatusVO.PAY_SUCCESS.equals(originalStatus)
+                || OrderStatusVO.MARKET.equals(originalStatus)
+                || OrderStatusVO.DEAL_DONE.equals(originalStatus);
+        if (!unpaid && !paid) {
+            throw new AppException(ResponseCode.ORDER_STATUS_ERROR.getCode(), ResponseCode.ORDER_STATUS_ERROR.getInfo());
+        }
+
+        // 先释放拼团侧占用；远端失败时商城状态保持不变，允许用户安全重试。
+        if (MarketTypeVO.GROUP_BUY_MARKET.equals(order.getMarketType())) {
+            groupBuyMarketPort.refundMarketPayOrder(userId, orderId);
+        }
+
+        int updateCount = unpaid
+                ? repository.refundOrder(userId, orderId, originalStatus)
+                : repository.refundMarketOrder(userId, orderId, originalStatus);
+        if (1 == updateCount) {
+            order.setOrderStatus(unpaid ? OrderStatusVO.CLOSE : OrderStatusVO.WAIT_REFUND);
+            return order;
+        }
+        if (0 != updateCount) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "商城退单更新影响行数异常：" + updateCount);
+        }
+
+        // 并发重复请求可能已经由另一个线程完成状态更新，回查后按幂等成功处理。
+        PayOrderEntity latestOrder = repository.queryOrderByUserIdAndOrderId(userId, orderId);
+        OrderStatusVO expectedTarget = unpaid ? OrderStatusVO.CLOSE : OrderStatusVO.WAIT_REFUND;
+        if (null != latestOrder && expectedTarget.equals(latestOrder.getOrderStatus())) {
+            return latestOrder;
+        }
+        throw new AppException(ResponseCode.ORDER_STATUS_ERROR.getCode(), "订单状态已变化，请刷新后重试");
     }
 
     @Override

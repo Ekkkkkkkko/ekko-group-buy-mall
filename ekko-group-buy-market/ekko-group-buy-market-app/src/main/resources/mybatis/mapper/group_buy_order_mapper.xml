@@ -127,7 +127,8 @@
         set lock_count = lock_count + #{lockCount}, update_time= now()
         where
         team_id = #{teamId} and
-        status = 0
+        status = 0 and
+        lock_count &gt; 0
     </update>
 
     <update id="paid2Refund" parameterType="cn.ekko.infrastructure.dao.po.GroupBuyOrder">
@@ -137,27 +138,22 @@
         update_time= now()
         where
         team_id = #{teamId} and
-        status = 0
+        status = 0 and
+        lock_count &gt; 0 and
+        complete_count &gt; 0
     </update>
 
     <update id="paidTeam2Refund" parameterType="cn.ekko.infrastructure.dao.po.GroupBuyOrder">
         update group_buy_order
-        set lock_count = lock_count + #{lockCount},
+        set status = case when complete_count = 1 then 2 else 3 end,
+        lock_count = lock_count + #{lockCount},
         complete_count = complete_count + #{completeCount},
-        status = 3,
         update_time = now()
         where
-        team_id = #{teamId} and (status = 1 or status = 3) and complete_count > 1
-    </update>
-
-    <update id="paidTeam2RefundFail" parameterType="cn.ekko.infrastructure.dao.po.GroupBuyOrder">
-        update group_buy_order
-        set lock_count = lock_count + #{lockCount},
-        complete_count = complete_count + #{completeCount},
-        status = 2,
-        update_time= now()
-        where
-        team_id = #{teamId} and (status = 1 or status = 3) and complete_count = 1
+        team_id = #{teamId}
+        and status in (1, 3)
+        and lock_count &gt; 0
+        and complete_count &gt; 0
     </update>
 
 </mapper>

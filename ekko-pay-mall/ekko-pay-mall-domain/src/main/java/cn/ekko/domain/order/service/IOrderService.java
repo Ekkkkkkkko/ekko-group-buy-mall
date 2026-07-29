@@ -35,6 +35,14 @@ public interface IOrderService {
      */
     boolean changeOrderDealDone(String orderId);
 
+    /** 按自增ID倒序查询用户订单，limit由调用方传入pageSize + 1。 */
+    List<PayOrderEntity> queryUserOrderList(String userId, Long lastId, int limit);
+
+    /**
+     * 申请退单。未支付订单返回CLOSE，已支付订单返回WAIT_REFUND。
+     */
+    PayOrderEntity refundOrder(String userId, String orderId);
+
     /**
      * 查询需要重试拼团结算的已支付订单。
      */

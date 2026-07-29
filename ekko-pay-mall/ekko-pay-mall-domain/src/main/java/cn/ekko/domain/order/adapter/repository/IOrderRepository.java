@@ -4,6 +4,7 @@ import cn.ekko.domain.order.model.aggregate.CreateOrderAggregate;
 import cn.ekko.domain.order.model.entity.OrderEntity;
 import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
+import cn.ekko.domain.order.model.valobj.OrderStatusVO;
 
 import java.util.List;
 import java.util.Date;
@@ -44,6 +45,16 @@ public interface IOrderRepository {
      * 按商城订单号查询本地支付订单。
      */
     PayOrderEntity queryOrderByOrderId(String orderId);
+
+    PayOrderEntity queryOrderByUserIdAndOrderId(String userId, String orderId);
+
+    List<PayOrderEntity> queryUserOrderList(String userId, Long lastId, int limit);
+
+    /** 将已支付订单从指定前置状态更新为WAIT_REFUND。 */
+    int refundMarketOrder(String userId, String orderId, OrderStatusVO expectedStatus);
+
+    /** 将未支付订单从指定前置状态更新为CLOSE。 */
+    int refundOrder(String userId, String orderId, OrderStatusVO expectedStatus);
 
     /**
      * 订单支付成功

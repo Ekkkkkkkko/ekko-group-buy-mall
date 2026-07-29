@@ -123,25 +123,38 @@ public class OrderRepository implements IOrderRepository {
         order.setOrderId(payOrderEntity.getOrderId());
         order.setPayUrl(payOrderEntity.getPayUrl());
         order.setStatus(payOrderEntity.getOrderStatus().getCode());
-        orderDao.updateOrderPayInfo(order);
+        int updateCount = orderDao.updateOrderPayInfo(order);
+        if (1 != updateCount) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付信息更新失败，订单状态已变化");
+        }
     }
 
     @Override
     public PayOrderEntity queryOrderByOrderId(String orderId) {
         PayOrder order = orderDao.queryOrderByOrderId(orderId);
-        if (null == order) return null;
+        return toPayOrderEntity(order);
+    }
 
-        return PayOrderEntity.builder()
-                .userId(order.getUserId())
-                .orderId(order.getOrderId())
-                .orderStatus(OrderStatusVO.valueOf(order.getStatus()))
-                .marketType(MarketTypeVO.valueOf(order.getMarketType()))
-                .activityId(order.getActivityId())
-                .teamId(order.getTeamId())
-                .marketDeductionAmount(order.getMarketDeductionAmount())
-                .payAmount(order.getPayAmount())
-                .payTime(order.getPayTime())
-                .build();
+    @Override
+    public PayOrderEntity queryOrderByUserIdAndOrderId(String userId, String orderId) {
+        return toPayOrderEntity(orderDao.queryOrderByUserIdAndOrderId(userId, orderId));
+    }
+
+    @Override
+    public List<PayOrderEntity> queryUserOrderList(String userId, Long lastId, int limit) {
+        return orderDao.queryUserOrderList(userId, lastId, limit).stream()
+                .map(this::toPayOrderEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int refundMarketOrder(String userId, String orderId, OrderStatusVO expectedStatus) {
+        return orderDao.refundMarketOrder(userId, orderId, expectedStatus.getCode());
+    }
+
+    @Override
+    public int refundOrder(String userId, String orderId, OrderStatusVO expectedStatus) {
+        return orderDao.refundOrder(userId, orderId, expectedStatus.getCode());
     }
 
     @Override
@@ -247,7 +260,32 @@ public class OrderRepository implements IOrderRepository {
 
     @Override
     public boolean changeOrderClose(String orderId) {
-        return orderDao.changeOrderClose(orderId);
+        int updateCount = orderDao.changeOrderClose(orderId);
+        if (updateCount > 1) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "关单更新影响行数异常：" + updateCount);
+        }
+        return 1 == updateCount;
+    }
+
+    private PayOrderEntity toPayOrderEntity(PayOrder order) {
+        if (null == order) return null;
+        return PayOrderEntity.builder()
+                .id(order.getId())
+                .userId(order.getUserId())
+                .productId(order.getProductId())
+                .productName(order.getProductName())
+                .orderId(order.getOrderId())
+                .orderTime(order.getOrderTime())
+                .totalAmount(order.getTotalAmount())
+                .payUrl(order.getPayUrl())
+                .orderStatus(OrderStatusVO.valueOf(order.getStatus()))
+                .marketType(MarketTypeVO.valueOf(order.getMarketType()))
+                .activityId(order.getActivityId())
+                .teamId(order.getTeamId())
+                .marketDeductionAmount(order.getMarketDeductionAmount())
+                .payAmount(order.getPayAmount())
+                .payTime(order.getPayTime())
+                .build();
     }
 
 }

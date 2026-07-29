@@ -1,6 +1,5 @@
 package cn.ekko.domain.trade.model.entity;
 
-import cn.ekko.domain.trade.model.valobj.RefundTypeEnumVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,10 +26,10 @@ public class TradeRefundCommandEntity {
      */
     private String outTradeNo;
 
-    /** 渠道 */
+    /** 商城来源 */
     private String source;
 
-    /** 来源 */
+    /** 商城渠道 */
     private String channel;
 
 }

@@ -26,12 +26,12 @@ public class RefundMarketPayOrderRequestDTO {
     private String outTradeNo;
 
     /**
-     * 渠道
+     * 商城来源
      */
     private String source;
 
     /**
-     * 来源
+     * 商城渠道
      */
     private String channel;
 
