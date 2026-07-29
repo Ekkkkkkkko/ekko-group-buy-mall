@@ -31,31 +31,45 @@
         select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url, notify_count, notify_status, parameter_json, uuid
         from notify_task
         where notify_status in (0, 2)
+           or (notify_status = 4 and update_time &lt;= date_sub(now(), interval 10 minute))
+        order by id asc
         limit 50
     </select>
 
     <select id="queryUnExecutedNotifyTaskByTeamId" resultMap="dataMap">
         select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url, notify_count, notify_status, parameter_json, uuid
         from notify_task
-        where team_id = #{teamId} and notify_status in (0, 2)
+        where team_id = #{teamId}
+          and (notify_status in (0, 2)
+            or (notify_status = 4 and update_time &lt;= date_sub(now(), interval 10 minute)))
+        order by id asc
     </select>
+
+    <update id="claimNotifyTask" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
+        update notify_task
+        set notify_status = 4, update_time = now()
+        where team_id = #{teamId}
+          and uuid = #{uuid}
+          and (notify_status in (0, 2)
+            or (notify_status = 4 and update_time &lt;= date_sub(now(), interval 10 minute)))
+    </update>
 
     <update id="updateNotifyTaskStatusSuccess" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
         set notify_count = notify_count + 1, notify_status = 1, update_time = now()
-        where team_id = #{teamId} and uuid = #{uuid}
+        where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 
     <update id="updateNotifyTaskStatusError" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
         set notify_count = notify_count + 1, notify_status = 3, update_time = now()
-        where team_id = #{teamId} and uuid = #{uuid}
+        where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 
     <update id="updateNotifyTaskStatusRetry" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
         set notify_count = notify_count + 1, notify_status = 2, update_time = now()
-        where team_id = #{teamId} and uuid = #{uuid}
+        where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 
 </mapper>

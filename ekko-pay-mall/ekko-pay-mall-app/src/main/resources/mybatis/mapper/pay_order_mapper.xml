@@ -54,6 +54,26 @@
         where order_id = #{orderId} and status = 'PAY_WAIT'
     </update>
 
+    <update id="changeOrderMarketSettlement">
+        update pay_order
+        set status = 'MARKET', update_time = now()
+        where team_id = #{teamId}
+          and market_type = 1
+          and status = 'PAY_SUCCESS'
+          and order_id in
+        <foreach item="orderId" collection="orderIds" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </update>
+
+    <update id="changeOrderDealDone" parameterType="java.lang.String">
+        update pay_order
+        set status = 'DEAL_DONE', update_time = now()
+        where order_id = #{orderId}
+          and market_type = 1
+          and status = 'MARKET'
+    </update>
+
     <update id="changeOrderClose" parameterType="java.lang.String">
         update pay_order set status = 'CLOSE', pay_time = now(), update_time = now()
         where order_id = #{orderId}
@@ -76,6 +96,19 @@
         from pay_order
         where order_id = #{orderId}
         limit 1
+    </select>
+
+    <select id="queryMarketOrdersByTeamIdAndOrderIds" resultMap="dataMap">
+        select user_id, order_id, status, market_type, team_id
+        from pay_order
+        where team_id = #{teamId}
+          and market_type = 1
+          and status in ('PAY_SUCCESS', 'MARKET', 'DEAL_DONE')
+          and order_id in
+        <foreach item="orderId" collection="orderIds" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+        for update
     </select>
 
     <select id="queryPaidMarketOrders" resultMap="dataMap">

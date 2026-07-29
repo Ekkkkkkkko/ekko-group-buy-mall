@@ -26,6 +26,16 @@ public interface IOrderService {
     boolean changeOrderPaySuccess(String orderId, Date payTime);
 
     /**
+     * 接收拼团成团通知，并只为首次从 PAY_SUCCESS 进入 MARKET 的订单发布履约事件。
+     */
+    boolean groupBuyNotify(String teamId, List<String> outTradeNoList);
+
+    /**
+     * 商品履约完成后，将拼团订单从 MARKET 更新为 DEAL_DONE。
+     */
+    boolean changeOrderDealDone(String orderId);
+
+    /**
      * 查询需要重试拼团结算的已支付订单。
      */
     List<PayOrderEntity> queryPendingMarketSettlementOrders();

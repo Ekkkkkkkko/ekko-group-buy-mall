@@ -34,6 +34,8 @@ public class PaySuccessMessageEvent extends BaseEvent<PaySuccessMessageEvent.Pay
     public static class PaySuccessMessage{
         private String userId;
         private String tradeNo;
+        /** 是否为拼团成团后的履约事件 */
+        private Boolean marketSettlement;
     }
 
 }

@@ -336,17 +336,28 @@ public class TradeRepository implements ITradeRepository {
 
     @Override
     public List<NotifyTaskEntity> queryUnExecutedNotifyTaskList(String teamId) {
-        NotifyTask notifyTask = notifyTaskDao.queryUnExecutedNotifyTaskByTeamId(teamId);
-        if (null == notifyTask) return new ArrayList<>();
-        return Collections.singletonList(NotifyTaskEntity.builder()
-                .teamId(notifyTask.getTeamId())
-                .notifyType(notifyTask.getNotifyType())
-                .notifyMQ(notifyTask.getNotifyMQ())
-                .notifyUrl(notifyTask.getNotifyUrl())
-                .notifyCount(notifyTask.getNotifyCount())
-                .parameterJson(notifyTask.getParameterJson())
-                .uuid(notifyTask.getUuid())
-                .build());
+        List<NotifyTask> notifyTasks = notifyTaskDao.queryUnExecutedNotifyTaskByTeamId(teamId);
+        if (notifyTasks.isEmpty()) return new ArrayList<>();
+        return notifyTasks.stream()
+                .map(notifyTask -> NotifyTaskEntity.builder()
+                        .teamId(notifyTask.getTeamId())
+                        .notifyType(notifyTask.getNotifyType())
+                        .notifyMQ(notifyTask.getNotifyMQ())
+                        .notifyUrl(notifyTask.getNotifyUrl())
+                        .notifyCount(notifyTask.getNotifyCount())
+                        .parameterJson(notifyTask.getParameterJson())
+                        .uuid(notifyTask.getUuid())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int claimNotifyTask(NotifyTaskEntity notifyTaskEntity) {
+        NotifyTask notifyTask = NotifyTask.builder()
+                .teamId(notifyTaskEntity.getTeamId())
+                .uuid(notifyTaskEntity.getUuid())
+                .build();
+        return notifyTaskDao.claimNotifyTask(notifyTask);
     }
 
     @Override

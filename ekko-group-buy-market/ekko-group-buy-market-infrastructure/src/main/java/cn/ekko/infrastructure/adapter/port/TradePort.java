@@ -7,6 +7,7 @@ import cn.ekko.infrastructure.event.EventPublisher;
 import cn.ekko.infrastructure.gateway.GroupBuyNotifyService;
 import cn.ekko.infrastructure.redis.IRedisService;
 import cn.ekko.types.enums.NotifyTaskHTTPEnumVO;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit;
  * @description 交易接口服务
  */
 @Service
+@Slf4j
 public class TradePort implements ITradePort {
 
     @Resource
@@ -37,9 +39,9 @@ public class TradePort implements ITradePort {
                 try {
                     // 回调方式 HTTP
                     if (NotifyTypeEnumVO.HTTP.getCode().equals(notifyTask.getNotifyType())) {
-                        // 无效的 notifyUrl 则直接返回成功
+                        // 无效的 notifyUrl 必须失败，不能将未发送的任务标记为成功
                         if (StringUtils.isBlank(notifyTask.getNotifyUrl()) || "暂无".equals(notifyTask.getNotifyUrl())) {
-                            return NotifyTaskHTTPEnumVO.SUCCESS.getCode();
+                            return NotifyTaskHTTPEnumVO.ERROR.getCode();
                         }
                         return groupBuyNotifyService.groupBuyNotify(notifyTask.getNotifyUrl(), notifyTask.getParameterJson());
                     }
@@ -49,6 +51,8 @@ public class TradePort implements ITradePort {
                         publisher.publish(notifyTask.getNotifyMQ(), notifyTask.getParameterJson());
                         return NotifyTaskHTTPEnumVO.SUCCESS.getCode();
                     }
+
+                    return NotifyTaskHTTPEnumVO.ERROR.getCode();
                 } finally {
                     if (lock.isLocked() && lock.isHeldByCurrentThread()) {
                         lock.unlock();
@@ -56,9 +60,13 @@ public class TradePort implements ITradePort {
                 }
             }
             return NotifyTaskHTTPEnumVO.NULL.getCode();
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return NotifyTaskHTTPEnumVO.NULL.getCode();
+            log.error("拼团通知任务获取锁被中断 teamId:{} uuid:{}", notifyTask.getTeamId(), notifyTask.getUuid(), e);
+            return NotifyTaskHTTPEnumVO.ERROR.getCode();
+        } catch (Exception e) {
+            log.error("拼团通知任务发送失败 teamId:{} uuid:{}", notifyTask.getTeamId(), notifyTask.getUuid(), e);
+            return NotifyTaskHTTPEnumVO.ERROR.getCode();
         }
     }
 

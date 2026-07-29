@@ -7,3 +7,5 @@ spring:
 # HTTP 回调白名单必须由部署环境显式提供；多个地址使用英文逗号分隔
 group-buy-market:
   notify-url-whitelist: ${GROUP_BUY_NOTIFY_URL_WHITELIST:}
+  # HTTP 成团回调共享令牌；必须与商城配置一致
+  notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}

@@ -58,8 +58,23 @@ public class TradeTaskService implements ITradeTaskService {
     private Map<String, Integer> execNotifyJob(List<NotifyTaskEntity> notifyTaskEntityList) throws Exception {
         int successCount = 0, errorCount = 0, retryCount = 0;
         for (NotifyTaskEntity notifyTask : notifyTaskEntityList) {
-            // 回调处理 success 成功，error 失败
-            String response = port.groupBuyNotify(notifyTask);
+            // 先通过数据库条件更新抢占具体 uuid，避免多实例拿到同一批旧快照后重复发送。
+            int claimCount = repository.claimNotifyTask(notifyTask);
+            if (1 != claimCount) {
+                log.info("拼团通知任务未抢占到，跳过本次执行 teamId:{} uuid:{}",
+                        notifyTask.getTeamId(), notifyTask.getUuid());
+                continue;
+            }
+
+            // 回调处理 success 成功，其他结果均进入失败重试。
+            String response;
+            try {
+                response = port.groupBuyNotify(notifyTask);
+            } catch (Exception e) {
+                log.error("拼团通知任务发送异常 teamId:{} uuid:{}",
+                        notifyTask.getTeamId(), notifyTask.getUuid(), e);
+                response = NotifyTaskHTTPEnumVO.ERROR.getCode();
+            }
 
             // 更新状态判断&变更数据库表回调任务状态
             if (NotifyTaskHTTPEnumVO.SUCCESS.getCode().equals(response)) {
@@ -67,8 +82,8 @@ public class TradeTaskService implements ITradeTaskService {
                 if (1 == updateCount) {
                     successCount += 1;
                 }
-            } else if (NotifyTaskHTTPEnumVO.ERROR.getCode().equals(response)) {
-                if (notifyTask.getNotifyCount() > 4) {
+            } else {
+                if (notifyTask.getNotifyCount() >= 4) {
                     int updateCount = repository.updateNotifyTaskStatusError(notifyTask);
                     if (1 == updateCount) {
                         errorCount += 1;

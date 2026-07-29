@@ -52,9 +52,19 @@ public interface IOrderRepository {
     int changeOrderPaySuccess(String orderId, Date payTime);
 
     /**
+     * 锁定回调涉及的商城订单，并批量将 PAY_SUCCESS 拼团订单更新为 MARKET。
+     * 返回值保留更新前状态，其中 PAY_SUCCESS 项就是本次首次更新成功的订单。
+     */
+    List<PayOrderEntity> changeOrderMarketSettlement(String teamId, List<String> outTradeNoList);
+
+    int changeOrderDealDone(String orderId);
+
+    /**
      * 发布普通订单首次支付成功事件。
      */
     void publishPaySuccessEvent(String userId, String orderId);
+
+    void publishMarketSettlementEvent(String userId, String orderId);
 
     /**
      * 记录拼团服务已经确认该商城订单的成员结算。

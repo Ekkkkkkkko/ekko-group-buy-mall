@@ -15,3 +15,5 @@ group-buy-market:
   notify-type: ${GROUP_BUY_MARKET_NOTIFY_TYPE:HTTP}
   notify-url: ${GROUP_BUY_MARKET_NOTIFY_URL:}
   notify-mq: ${GROUP_BUY_MARKET_NOTIFY_MQ:}
+  # HTTP 成团回调共享令牌；商城与拼团服务必须配置相同值，空值时商城默认拒绝回调
+  notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}

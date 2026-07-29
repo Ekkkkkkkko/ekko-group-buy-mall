@@ -19,8 +19,11 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -106,6 +109,65 @@ public class OrderService extends AbstractOrderService {
 
         if (firstPaySuccess) {
             repository.publishPaySuccessEvent(payOrder.getUserId(), orderId);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean groupBuyNotify(String teamId, List<String> outTradeNoList) {
+        if (null == teamId || teamId.isBlank() || null == outTradeNoList || outTradeNoList.isEmpty()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "队伍ID和商城订单号列表不能为空");
+        }
+
+        List<String> normalizedOrderIds = outTradeNoList.stream()
+                .filter(orderId -> null != orderId && !orderId.isBlank())
+                .map(String::trim)
+                .distinct()
+                .collect(Collectors.toList());
+        if (normalizedOrderIds.isEmpty()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "商城订单号列表不能为空");
+        }
+
+        List<PayOrderEntity> matchedOrders = repository.changeOrderMarketSettlement(teamId, normalizedOrderIds);
+        Set<String> matchedOrderIds = matchedOrders.stream()
+                .map(PayOrderEntity::getOrderId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        List<String> missingOrderIds = normalizedOrderIds.stream()
+                .filter(orderId -> !matchedOrderIds.contains(orderId))
+                .collect(Collectors.toList());
+
+        List<PayOrderEntity> firstMarketOrders = matchedOrders.stream()
+                .filter(order -> OrderStatusVO.PAY_SUCCESS.equals(order.getOrderStatus()))
+                .collect(Collectors.toList());
+        for (PayOrderEntity order : firstMarketOrders) {
+            repository.publishMarketSettlementEvent(order.getUserId(), order.getOrderId());
+        }
+
+        if (!missingOrderIds.isEmpty()) {
+            log.warn("拼团成团通知存在未匹配订单，保留任务重试并等待人工补偿 teamId:{} missingOrderIds:{}",
+                    teamId, missingOrderIds);
+            return false;
+        }
+
+        log.info("拼团成团通知幂等处理完成 teamId:{} requestCount:{} firstMarketCount:{}",
+                teamId, normalizedOrderIds.size(), firstMarketOrders.size());
+        return true;
+    }
+
+    @Override
+    public boolean changeOrderDealDone(String orderId) {
+        if (null == orderId || orderId.isBlank()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "订单号不能为空");
+        }
+
+        int updateCount = repository.changeOrderDealDone(orderId);
+        if (0 == updateCount) {
+            log.info("订单未从MARKET更新为DEAL_DONE，可能已完成或不满足履约条件 orderId:{}", orderId);
+            return false;
+        }
+        if (1 != updateCount) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "履约完成更新影响行数异常：" + updateCount);
         }
         return true;
     }

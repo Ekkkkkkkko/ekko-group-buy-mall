@@ -18,6 +18,7 @@ import cn.ekko.types.exception.AppException;
 import com.alibaba.fastjson2.JSON;
 import com.google.common.eventbus.EventBus;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.annotation.Resource;
 import java.util.List;
@@ -153,16 +154,60 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
-    public void publishPaySuccessEvent(String userId, String orderId) {
-        BaseEvent.EventMessage<PaySuccessMessageEvent.PaySuccessMessage> eventMessage = paySuccessMessageEvent.buildEventMessage(
-                PaySuccessMessageEvent.PaySuccessMessage.builder()
-                        .userId(userId)
-                        .tradeNo(orderId)
-                        .build()
-        );
-        PaySuccessMessageEvent.PaySuccessMessage paySuccessMessage = eventMessage.getData();
+    @Transactional(timeout = 5)
+    public List<PayOrderEntity> changeOrderMarketSettlement(String teamId, List<String> outTradeNoList) {
+        List<PayOrder> matchedOrders = orderDao.queryMarketOrdersByTeamIdAndOrderIds(teamId, outTradeNoList);
+        List<String> firstMarketOrderIds = matchedOrders.stream()
+                .filter(order -> OrderStatusVO.PAY_SUCCESS.getCode().equals(order.getStatus()))
+                .map(PayOrder::getOrderId)
+                .collect(Collectors.toList());
 
-        eventBus.post(JSON.toJSONString(paySuccessMessage));
+        if (!firstMarketOrderIds.isEmpty()) {
+            int updateCount = orderDao.changeOrderMarketSettlement(teamId, firstMarketOrderIds);
+            if (updateCount != firstMarketOrderIds.size()) {
+                throw new AppException(
+                        ResponseCode.UN_ERROR.getCode(),
+                        "成团订单更新影响行数异常，expected=" + firstMarketOrderIds.size() + " actual=" + updateCount
+                );
+            }
+        }
+
+        return matchedOrders.stream()
+                .map(order -> PayOrderEntity.builder()
+                        .userId(order.getUserId())
+                        .orderId(order.getOrderId())
+                        .orderStatus(OrderStatusVO.valueOf(order.getStatus()))
+                        .marketType(MarketTypeVO.valueOf(order.getMarketType()))
+                        .teamId(order.getTeamId())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int changeOrderDealDone(String orderId) {
+        return orderDao.changeOrderDealDone(orderId);
+    }
+
+    @Override
+    public void publishPaySuccessEvent(String userId, String orderId) {
+        publishOrderEvent(userId, orderId, false);
+    }
+
+    @Override
+    public void publishMarketSettlementEvent(String userId, String orderId) {
+        publishOrderEvent(userId, orderId, true);
+    }
+
+    private void publishOrderEvent(String userId, String orderId, boolean marketSettlement) {
+        BaseEvent.EventMessage<PaySuccessMessageEvent.PaySuccessMessage> eventMessage =
+                paySuccessMessageEvent.buildEventMessage(
+                        PaySuccessMessageEvent.PaySuccessMessage.builder()
+                                .userId(userId)
+                                .tradeNo(orderId)
+                                .marketSettlement(marketSettlement)
+                                .build()
+                );
+        eventBus.post(JSON.toJSONString(eventMessage.getData()));
     }
 
     @Override

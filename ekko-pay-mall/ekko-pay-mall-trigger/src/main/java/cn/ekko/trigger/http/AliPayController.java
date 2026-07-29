@@ -2,6 +2,7 @@ package cn.ekko.trigger.http;
 
 import cn.ekko.api.IPayService;
 import cn.ekko.api.dto.CreatePayRequestDTO;
+import cn.ekko.api.dto.NotifyRequestDTO;
 import cn.ekko.api.response.Response;
 import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
@@ -21,6 +22,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 @Slf4j
 @RestController
@@ -30,6 +33,8 @@ public class AliPayController implements IPayService {
 
     @Value("${alipay.alipay_public_key}")
     private String alipayPublicKey;
+    @Value("${group-buy-market.notify-token:}")
+    private String groupBuyNotifyToken;
     @Resource
     private IOrderService orderService;
 
@@ -147,6 +152,47 @@ public class AliPayController implements IPayService {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         dateFormat.setLenient(false);
         return dateFormat.parse(gmtPayment);
+    }
+
+    @Override
+    @RequestMapping(value = "group_buy_notify", method = RequestMethod.POST)
+    public String groupBuyNotify(
+            @RequestBody NotifyRequestDTO notifyRequestDTO,
+            @RequestHeader(value = "X-Group-Buy-Token", required = false) String notifyToken) {
+        try {
+            if (!isTrustedGroupBuyNotify(notifyToken)) {
+                log.warn("拒绝不可信的拼团成团通知 teamId:{}",
+                        null == notifyRequestDTO ? null : notifyRequestDTO.getTeamId());
+                return "error";
+            }
+            if (null == notifyRequestDTO) {
+                return "error";
+            }
+
+            log.info("接收拼团成团通知 teamId:{} outTradeNoList:{}",
+                    notifyRequestDTO.getTeamId(), notifyRequestDTO.getOutTradeNoList());
+            boolean handled = orderService.groupBuyNotify(
+                    notifyRequestDTO.getTeamId(),
+                    notifyRequestDTO.getOutTradeNoList()
+            );
+            return handled ? "success" : "error";
+        } catch (Exception e) {
+            log.error("拼团成团通知处理失败 teamId:{} outTradeNoList:{}",
+                    null == notifyRequestDTO ? null : notifyRequestDTO.getTeamId(),
+                    null == notifyRequestDTO ? null : notifyRequestDTO.getOutTradeNoList(), e);
+            return "error";
+        }
+    }
+
+    private boolean isTrustedGroupBuyNotify(String notifyToken) {
+        if (null == groupBuyNotifyToken || groupBuyNotifyToken.isBlank()
+                || null == notifyToken || notifyToken.isBlank()) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                groupBuyNotifyToken.getBytes(StandardCharsets.UTF_8),
+                notifyToken.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
 }

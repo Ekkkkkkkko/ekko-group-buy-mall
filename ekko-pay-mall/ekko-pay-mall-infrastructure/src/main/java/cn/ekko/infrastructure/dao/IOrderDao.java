@@ -2,6 +2,7 @@ package cn.ekko.infrastructure.dao;
 
 import cn.ekko.infrastructure.dao.po.PayOrder;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -19,6 +20,16 @@ public interface IOrderDao {
     PayOrder queryOrderByOrderId(String orderId);
 
     int changeOrderPaySuccess(PayOrder order);
+
+    List<PayOrder> queryMarketOrdersByTeamIdAndOrderIds(
+            @Param("teamId") String teamId,
+            @Param("orderIds") List<String> orderIds);
+
+    int changeOrderMarketSettlement(
+            @Param("teamId") String teamId,
+            @Param("orderIds") List<String> orderIds);
+
+    int changeOrderDealDone(String orderId);
 
     List<PayOrder> queryPaidMarketOrders();
 

@@ -38,6 +38,8 @@ public interface ITradeRepository {
 
     List<NotifyTaskEntity> queryUnExecutedNotifyTaskList(String teamId);
 
+    int claimNotifyTask(NotifyTaskEntity notifyTaskEntity);
+
     int updateNotifyTaskStatusSuccess(NotifyTaskEntity notifyTaskEntity);
 
     int updateNotifyTaskStatusError(NotifyTaskEntity notifyTaskEntity);
