@@ -25,6 +25,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Service
 public class TradeTaskService implements ITradeTaskService {
 
+    private static final int LAST_ERROR_MAX_LENGTH = 1000;
+
     @Resource
     private ITradeRepository repository;
     @Resource
@@ -74,15 +76,20 @@ public class TradeTaskService implements ITradeTaskService {
                 log.error("拼团通知任务发送异常 teamId:{} uuid:{}",
                         notifyTask.getTeamId(), notifyTask.getUuid(), e);
                 response = NotifyTaskHTTPEnumVO.ERROR.getCode();
+                notifyTask.setLastError(truncateError(e.getClass().getSimpleName() + ": " + e.getMessage()));
             }
 
             // 更新状态判断&变更数据库表回调任务状态
             if (NotifyTaskHTTPEnumVO.SUCCESS.getCode().equals(response)) {
+                notifyTask.setLastError(null);
                 int updateCount = repository.updateNotifyTaskStatusSuccess(notifyTask);
                 if (1 == updateCount) {
                     successCount += 1;
                 }
             } else {
+                if (null == notifyTask.getLastError()) {
+                    notifyTask.setLastError(truncateError("notify response: " + response));
+                }
                 if (notifyTask.getNotifyCount() >= 4) {
                     int updateCount = repository.updateNotifyTaskStatusError(notifyTask);
                     if (1 == updateCount) {
@@ -104,6 +111,13 @@ public class TradeTaskService implements ITradeTaskService {
         resultMap.put("retryCount", retryCount);
 
         return resultMap;
+    }
+
+    private String truncateError(String error) {
+        if (null == error) return "unknown error";
+        return error.length() <= LAST_ERROR_MAX_LENGTH
+                ? error
+                : error.substring(0, LAST_ERROR_MAX_LENGTH);
     }
     
 }

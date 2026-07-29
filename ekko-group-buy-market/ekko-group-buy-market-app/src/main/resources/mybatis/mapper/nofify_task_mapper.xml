@@ -14,6 +14,7 @@
         <result column="notify_status" property="notifyStatus"/>
         <result column="parameter_json" property="parameterJson"/>
         <result column="uuid" property="uuid"/>
+        <result column="last_error" property="lastError"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -21,14 +22,15 @@
     <insert id="insert" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         insert into notify_task(
         activity_id, team_id, notify_category, notify_type, notify_mq, notify_url,
-        notify_count, notify_status, parameter_json, uuid, create_time, update_time)
+        notify_count, notify_status, parameter_json, uuid, last_error, create_time, update_time)
         values(
         #{activityId}, #{teamId}, #{notifyCategory}, #{notifyType}, #{notifyMQ},  #{notifyUrl},
-        #{notifyCount}, #{notifyStatus}, #{parameterJson}, #{uuid}, now(), now())
+        #{notifyCount}, #{notifyStatus}, #{parameterJson}, #{uuid}, #{lastError}, now(), now())
     </insert>
 
     <select id="queryUnExecutedNotifyTaskList" resultMap="dataMap">
-        select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url, notify_count, notify_status, parameter_json, uuid
+        select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url,
+               notify_count, notify_status, parameter_json, uuid, last_error
         from notify_task
         where notify_status in (0, 2)
            or (notify_status = 4 and update_time &lt;= date_sub(now(), interval 10 minute))
@@ -37,7 +39,8 @@
     </select>
 
     <select id="queryUnExecutedNotifyTaskByTeamId" resultMap="dataMap">
-        select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url, notify_count, notify_status, parameter_json, uuid
+        select activity_id, team_id, notify_category, notify_type, notify_mq, notify_url,
+               notify_count, notify_status, parameter_json, uuid, last_error
         from notify_task
         where team_id = #{teamId}
           and (notify_status in (0, 2)
@@ -56,19 +59,28 @@
 
     <update id="updateNotifyTaskStatusSuccess" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
-        set notify_count = notify_count + 1, notify_status = 1, update_time = now()
+        set notify_count = notify_count + 1,
+            notify_status = 1,
+            last_error = null,
+            update_time = now()
         where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 
     <update id="updateNotifyTaskStatusError" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
-        set notify_count = notify_count + 1, notify_status = 3, update_time = now()
+        set notify_count = notify_count + 1,
+            notify_status = 3,
+            last_error = #{lastError},
+            update_time = now()
         where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 
     <update id="updateNotifyTaskStatusRetry" parameterType="cn.ekko.infrastructure.dao.po.NotifyTask">
         update notify_task
-        set notify_count = notify_count + 1, notify_status = 2, update_time = now()
+        set notify_count = notify_count + 1,
+            notify_status = 2,
+            last_error = #{lastError},
+            update_time = now()
         where team_id = #{teamId} and uuid = #{uuid} and notify_status = 4
     </update>
 

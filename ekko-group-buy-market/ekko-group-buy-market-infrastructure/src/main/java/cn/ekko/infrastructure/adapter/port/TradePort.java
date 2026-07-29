@@ -63,10 +63,10 @@ public class TradePort implements ITradePort {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("拼团通知任务获取锁被中断 teamId:{} uuid:{}", notifyTask.getTeamId(), notifyTask.getUuid(), e);
-            return NotifyTaskHTTPEnumVO.ERROR.getCode();
+            throw e;
         } catch (Exception e) {
             log.error("拼团通知任务发送失败 teamId:{} uuid:{}", notifyTask.getTeamId(), notifyTask.getUuid(), e);
-            return NotifyTaskHTTPEnumVO.ERROR.getCode();
+            throw e;
         }
     }
 

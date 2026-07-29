@@ -3,6 +3,34 @@ spring:
     name: ekko-pay-mall
   profiles:
     active: dev
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VIRTUAL_HOST:/}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: ${RABBITMQ_REFUND_PREFETCH:1}
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          stateless: true
+          max-attempts: ${RABBITMQ_REFUND_MAX_ATTEMPTS:5}
+          initial-interval: ${RABBITMQ_REFUND_INITIAL_INTERVAL:2s}
+          multiplier: 2
+          max-interval: ${RABBITMQ_REFUND_MAX_INTERVAL:30s}
+    config:
+      consumer:
+        topic_team_refund:
+          exchange: ekko_group_buy_market_exchange
+          routing_key: topic.team_refund
+          # 商城专属队列，不能与拼团内部恢复库存队列共用。
+          queue: ekko_pay_mall_queue_2_topic_team_refund
+          dead_letter_exchange: ekko_pay_mall_dead_letter_exchange
+          dead_letter_routing_key: dlq.topic.team_refund
+          dead_letter_queue: ekko_pay_mall_dlq_2_topic_team_refund
 
 server:
   port: ${SERVER_PORT:8092}
@@ -21,3 +49,6 @@ group-buy-market:
   notify-mq: ${GROUP_BUY_MARKET_NOTIFY_MQ:}
   # HTTP 成团回调共享令牌；商城与拼团服务必须配置相同值，空值时商城默认拒绝回调
   notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}
+
+refund:
+  compensation-cron: ${REFUND_COMPENSATION_CRON:0/30 * * * * ?}

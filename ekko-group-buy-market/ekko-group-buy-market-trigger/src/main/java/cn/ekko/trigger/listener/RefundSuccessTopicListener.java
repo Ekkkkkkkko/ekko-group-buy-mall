@@ -32,8 +32,8 @@ public class RefundSuccessTopicListener {
      */
     @RabbitListener(
             bindings = @QueueBinding(
-                    value = @Queue(value = "${spring.rabbitmq.config.producer.topic_team_refund.queue}"),
-                    exchange = @Exchange(value = "${spring.rabbitmq.config.producer.exchange}", type = ExchangeTypes.TOPIC),
+                    value = @Queue(value = "${spring.rabbitmq.config.producer.topic_team_refund.queue}", durable = "true"),
+                    exchange = @Exchange(value = "${spring.rabbitmq.config.producer.exchange}", type = ExchangeTypes.TOPIC, durable = "true"),
                     key = "${spring.rabbitmq.config.producer.topic_team_refund.routing_key}"
             )
     )

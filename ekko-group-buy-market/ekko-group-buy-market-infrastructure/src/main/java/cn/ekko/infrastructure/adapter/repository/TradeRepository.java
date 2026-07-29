@@ -311,6 +311,7 @@ public class TradeRepository implements ITradeRepository {
                     .notifyCount(notifyTask.getNotifyCount())
                     .parameterJson(notifyTask.getParameterJson())
                     .uuid(notifyTask.getUuid())
+                    .lastError(notifyTask.getLastError())
                     .build();
         }
 
@@ -338,6 +339,7 @@ public class TradeRepository implements ITradeRepository {
                     .notifyCount(notifyTask.getNotifyCount())
                     .parameterJson(notifyTask.getParameterJson())
                     .uuid(notifyTask.getUuid())
+                    .lastError(notifyTask.getLastError())
                     .build();
 
             notifyTaskEntities.add(notifyTaskEntity);
@@ -359,6 +361,7 @@ public class TradeRepository implements ITradeRepository {
                         .notifyCount(notifyTask.getNotifyCount())
                         .parameterJson(notifyTask.getParameterJson())
                         .uuid(notifyTask.getUuid())
+                        .lastError(notifyTask.getLastError())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -368,6 +371,7 @@ public class TradeRepository implements ITradeRepository {
         NotifyTask notifyTask = NotifyTask.builder()
                 .teamId(notifyTaskEntity.getTeamId())
                 .uuid(notifyTaskEntity.getUuid())
+                .lastError(notifyTaskEntity.getLastError())
                 .build();
         return notifyTaskDao.claimNotifyTask(notifyTask);
     }
@@ -377,6 +381,7 @@ public class TradeRepository implements ITradeRepository {
         NotifyTask notifyTask = NotifyTask.builder()
                 .teamId(notifyTaskEntity.getTeamId())
                 .uuid(notifyTaskEntity.getUuid())
+                .lastError(notifyTaskEntity.getLastError())
                 .build();
         return notifyTaskDao.updateNotifyTaskStatusSuccess(notifyTask);
     }
@@ -386,6 +391,7 @@ public class TradeRepository implements ITradeRepository {
         NotifyTask notifyTask = NotifyTask.builder()
                 .teamId(notifyTaskEntity.getTeamId())
                 .uuid(notifyTaskEntity.getUuid())
+                .lastError(notifyTaskEntity.getLastError())
                 .build();
         return notifyTaskDao.updateNotifyTaskStatusError(notifyTask);
     }
@@ -395,6 +401,7 @@ public class TradeRepository implements ITradeRepository {
         NotifyTask notifyTask = NotifyTask.builder()
                 .teamId(notifyTaskEntity.getTeamId())
                 .uuid(notifyTaskEntity.getUuid())
+                .lastError(notifyTaskEntity.getLastError())
                 .build();
         return notifyTaskDao.updateNotifyTaskStatusRetry(notifyTask);
     }

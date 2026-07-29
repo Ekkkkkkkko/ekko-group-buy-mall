@@ -3,9 +3,28 @@ spring:
     name: ekko-group-buy-market-app
   profiles:
     active: dev
+  rabbitmq:
+    # 本地连接信息由各环境 profile 或环境变量提供；以下配置保证发布成功必须收到 Broker ACK。
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+      delivery-mode: persistent
+    config:
+      producer:
+        exchange: ekko_group_buy_market_exchange
+        confirm-timeout-ms: ${GROUP_BUY_MQ_CONFIRM_TIMEOUT_MS:5000}
+        topic_team_success:
+          routing_key: topic.team_success
+          queue: ekko_group_buy_market_queue_2_topic_team_success
+        topic_team_refund:
+          routing_key: topic.team_refund
+          # 这是拼团内部恢复锁单量队列，不能与商城退款队列共用。
+          queue: ekko_group_buy_market_queue_2_topic_team_refund
 
 # HTTP 回调白名单必须由部署环境显式提供；多个地址使用英文逗号分隔
 group-buy-market:
   notify-url-whitelist: ${GROUP_BUY_NOTIFY_URL_WHITELIST:}
   # HTTP 成团回调共享令牌；必须与商城配置一致
   notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}
+  notify-job-cron: ${GROUP_BUY_NOTIFY_JOB_CRON:0/10 * * * * ?}

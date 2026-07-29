@@ -43,6 +43,15 @@ public interface IOrderService {
      */
     PayOrderEntity refundOrder(String userId, String orderId);
 
+    /** unpaid_unlock只确认第4步已经把商城未支付订单关闭，不调用支付宝。 */
+    boolean confirmUnpaidRefundOrderClosed(String userId, String outTradeNo);
+
+    /** paid_unformed/paid_formed按本地pay_amount调用支付宝退款。 */
+    boolean refundPayOrder(String userId, String outTradeNo) throws Exception;
+
+    /** 查询需要退款补偿的WAIT_REFUND订单。 */
+    List<PayOrderEntity> queryTimeoutWaitRefundOrders();
+
     /**
      * 查询需要重试拼团结算的已支付订单。
      */

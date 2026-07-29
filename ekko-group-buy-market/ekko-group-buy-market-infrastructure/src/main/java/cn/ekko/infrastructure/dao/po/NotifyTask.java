@@ -39,6 +39,8 @@ public class NotifyTask {
     private String parameterJson;
     /** 唯一标识 */
     private String uuid;
+    /** 最近一次发送失败原因 */
+    private String lastError;
     /** 创建时间 */
     private Date createTime;
     /** 更新时间 */

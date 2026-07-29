@@ -12,8 +12,15 @@ import cn.ekko.types.exception.AppException;
 import com.alibaba.fastjson.JSONObject;
 import com.alipay.api.AlipayApiException;
 import com.alipay.api.AlipayClient;
+import com.alipay.api.domain.AlipayTradeFastpayRefundQueryModel;
+import com.alipay.api.domain.AlipayTradeRefundModel;
+import com.alipay.api.request.AlipayTradeFastpayRefundQueryRequest;
 import com.alipay.api.request.AlipayTradePagePayRequest;
+import com.alipay.api.request.AlipayTradeRefundRequest;
+import com.alipay.api.response.AlipayTradeFastpayRefundQueryResponse;
+import com.alipay.api.response.AlipayTradeRefundResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +35,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class OrderService extends AbstractOrderService {
+
+    private static final String REFUND_SUCCESS = "REFUND_SUCCESS";
+    private static final String FUND_CHANGE_YES = "Y";
+    private static final String ALIPAY_SUCCESS_CODE = "10000";
+    private static final int MAX_REFUND_REQUEST_NO_LENGTH = 64;
 
     @Value("${alipay.notify_url}")
     private String notifyUrl;
@@ -234,6 +246,163 @@ public class OrderService extends AbstractOrderService {
             return latestOrder;
         }
         throw new AppException(ResponseCode.ORDER_STATUS_ERROR.getCode(), "订单状态已变化，请刷新后重试");
+    }
+
+    @Override
+    public boolean confirmUnpaidRefundOrderClosed(String userId, String outTradeNo) {
+        validateRefundMessageKey(userId, outTradeNo);
+        PayOrderEntity order = repository.queryOrderByUserIdAndOrderId(userId, outTradeNo);
+        if (null == order) {
+            throw new AppException(ResponseCode.ORDER_NOT_FOUND.getCode(), ResponseCode.ORDER_NOT_FOUND.getInfo());
+        }
+        if (!OrderStatusVO.CLOSE.equals(order.getOrderStatus())) {
+            throw new AppException(
+                    ResponseCode.ORDER_STATUS_ERROR.getCode(),
+                    "unpaid_unlock对应商城订单尚未关闭，当前状态：" + order.getOrderStatus()
+            );
+        }
+        return true;
+    }
+
+    @Override
+    public boolean refundPayOrder(String userId, String outTradeNo) throws Exception {
+        validateRefundMessageKey(userId, outTradeNo);
+        PayOrderEntity order = repository.queryOrderByUserIdAndOrderId(userId, outTradeNo);
+        if (null == order) {
+            throw new AppException(ResponseCode.ORDER_NOT_FOUND.getCode(), ResponseCode.ORDER_NOT_FOUND.getInfo());
+        }
+
+        if (OrderStatusVO.CLOSE.equals(order.getOrderStatus())) {
+            log.info("支付宝退款消息重复消费，本地订单已关闭 userId:{} outTradeNo:{}", userId, outTradeNo);
+            return true;
+        }
+        if (!OrderStatusVO.WAIT_REFUND.equals(order.getOrderStatus())) {
+            throw new AppException(
+                    ResponseCode.ORDER_STATUS_ERROR.getCode(),
+                    "退款订单必须处于WAIT_REFUND，当前状态：" + order.getOrderStatus()
+            );
+        }
+        if (null == order.getPayAmount() || order.getPayAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "本地pay_amount为空或不合法，禁止退款");
+        }
+
+        String refundRequestNo = buildRefundRequestNo(outTradeNo);
+
+        // 每次发起退款前先查相同退款请求号。上一次请求超时/结果未知时，不会盲目生成新退款号。
+        if (queryAlipayRefundSuccess(order, refundRequestNo)) {
+            return closeRefundOrderIdempotently(userId, outTradeNo);
+        }
+
+        AlipayTradeRefundRequest refundRequest = new AlipayTradeRefundRequest();
+        AlipayTradeRefundModel refundModel = new AlipayTradeRefundModel();
+        refundModel.setOutTradeNo(outTradeNo);
+        refundModel.setOutRequestNo(refundRequestNo);
+        refundModel.setRefundAmount(order.getPayAmount().toPlainString());
+        refundModel.setRefundReason("拼团退单");
+        refundRequest.setBizModel(refundModel);
+
+        AlipayTradeRefundResponse refundResponse = alipayClient.execute(refundRequest);
+        if (null == refundResponse
+                || !ALIPAY_SUCCESS_CODE.equals(refundResponse.getCode())
+                || !refundResponse.isSuccess()) {
+            String code = null == refundResponse ? null : refundResponse.getCode();
+            String subCode = null == refundResponse ? null : refundResponse.getSubCode();
+            throw new AppException(
+                    ResponseCode.UN_ERROR.getCode(),
+                    "支付宝退款未明确成功，code=" + code + ", subCode=" + subCode
+            );
+        }
+
+        // fund_change=N 可能是相同退款号的重复请求，不能仅凭接口code把本地订单关闭，必须再查退款结果。
+        if (!FUND_CHANGE_YES.equals(refundResponse.getFundChange())) {
+            if (queryAlipayRefundSuccess(order, refundRequestNo)) {
+                return closeRefundOrderIdempotently(userId, outTradeNo);
+            }
+            throw new AppException(
+                    ResponseCode.UN_ERROR.getCode(),
+                    "支付宝退款未确认发生资金变化，且退款查询未返回REFUND_SUCCESS，保留WAIT_REFUND"
+            );
+        }
+
+        log.info("支付宝退款明确成功 userId:{} outTradeNo:{} refundRequestNo:{} payAmount:{} tradeNo:{} fundChange:{}",
+                userId, outTradeNo, refundRequestNo, order.getPayAmount(),
+                refundResponse.getTradeNo(), refundResponse.getFundChange());
+        return closeRefundOrderIdempotently(userId, outTradeNo);
+    }
+
+    @Override
+    public List<PayOrderEntity> queryTimeoutWaitRefundOrders() {
+        return repository.queryTimeoutWaitRefundOrders();
+    }
+
+    private boolean queryAlipayRefundSuccess(PayOrderEntity order, String refundRequestNo) throws AlipayApiException {
+        AlipayTradeFastpayRefundQueryRequest queryRequest = new AlipayTradeFastpayRefundQueryRequest();
+        AlipayTradeFastpayRefundQueryModel queryModel = new AlipayTradeFastpayRefundQueryModel();
+        queryModel.setOutTradeNo(order.getOrderId());
+        queryModel.setOutRequestNo(refundRequestNo);
+        queryRequest.setBizModel(queryModel);
+
+        AlipayTradeFastpayRefundQueryResponse queryResponse = alipayClient.execute(queryRequest);
+        if (null == queryResponse) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付宝退款查询无响应，保留WAIT_REFUND");
+        }
+
+        if (ALIPAY_SUCCESS_CODE.equals(queryResponse.getCode())
+                && queryResponse.isSuccess()
+                && REFUND_SUCCESS.equals(queryResponse.getRefundStatus())) {
+            verifyRefundAmount(order.getPayAmount(), queryResponse.getRefundAmount());
+            log.info("支付宝退款查询确认成功 outTradeNo:{} refundRequestNo:{} refundAmount:{}",
+                    order.getOrderId(), refundRequestNo, queryResponse.getRefundAmount());
+            return true;
+        }
+
+        // 查询接口业务成功但没有REFUND_SUCCESS，表示当前尚未查到成功退款，可使用同一请求号发起/重试。
+        if (ALIPAY_SUCCESS_CODE.equals(queryResponse.getCode()) && queryResponse.isSuccess()) {
+            return false;
+        }
+
+        throw new AppException(
+                ResponseCode.UN_ERROR.getCode(),
+                "支付宝退款查询结果不明确，禁止直接重发，code=" + queryResponse.getCode()
+                        + ", subCode=" + queryResponse.getSubCode()
+        );
+    }
+
+    private boolean closeRefundOrderIdempotently(String userId, String outTradeNo) {
+        int updateCount = repository.closeRefundOrder(userId, outTradeNo);
+        if (1 == updateCount) return true;
+        if (0 != updateCount) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "退款关单影响行数异常：" + updateCount);
+        }
+
+        PayOrderEntity latestOrder = repository.queryOrderByUserIdAndOrderId(userId, outTradeNo);
+        if (null != latestOrder && OrderStatusVO.CLOSE.equals(latestOrder.getOrderStatus())) {
+            return true;
+        }
+        throw new AppException(ResponseCode.ORDER_STATUS_ERROR.getCode(), "支付宝退款成功但本地关单失败，等待补偿");
+    }
+
+    private void verifyRefundAmount(BigDecimal localPayAmount, String alipayRefundAmount) {
+        if (null == alipayRefundAmount || alipayRefundAmount.isBlank()) return;
+        try {
+            if (localPayAmount.compareTo(new BigDecimal(alipayRefundAmount)) != 0) {
+                throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付宝退款金额与本地pay_amount不一致，转人工核对");
+            }
+        } catch (NumberFormatException e) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付宝退款金额格式异常，转人工核对");
+        }
+    }
+
+    private String buildRefundRequestNo(String outTradeNo) {
+        String requestNo = "REFUND_" + outTradeNo;
+        if (requestNo.length() <= MAX_REFUND_REQUEST_NO_LENGTH) return requestNo;
+        return "REFUND_" + DigestUtils.sha256Hex(outTradeNo).substring(0, 40);
+    }
+
+    private void validateRefundMessageKey(String userId, String outTradeNo) {
+        if (null == userId || userId.isBlank() || null == outTradeNo || outTradeNo.isBlank()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "退款消息userId和outTradeNo不能为空");
+        }
     }
 
     @Override

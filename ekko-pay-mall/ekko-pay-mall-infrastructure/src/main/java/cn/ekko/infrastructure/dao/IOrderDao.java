@@ -38,6 +38,12 @@ public interface IOrderDao {
             @Param("orderId") String orderId,
             @Param("expectedStatus") String expectedStatus);
 
+    int closeRefundOrder(
+            @Param("userId") String userId,
+            @Param("orderId") String orderId);
+
+    List<PayOrder> queryTimeoutWaitRefundOrders();
+
     int changeOrderPaySuccess(PayOrder order);
 
     List<PayOrder> queryMarketOrdersByTeamIdAndOrderIds(

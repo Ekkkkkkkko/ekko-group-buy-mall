@@ -56,6 +56,12 @@ public interface IOrderRepository {
     /** 将未支付订单从指定前置状态更新为CLOSE。 */
     int refundOrder(String userId, String orderId, OrderStatusVO expectedStatus);
 
+    /** 支付宝明确退款成功后，只允许WAIT_REFUND更新为CLOSE。 */
+    int closeRefundOrder(String userId, String orderId);
+
+    /** 查询长时间停留在WAIT_REFUND的订单，用于退款补偿。 */
+    List<PayOrderEntity> queryTimeoutWaitRefundOrders();
+
     /**
      * 订单支付成功
      * @param orderId 订单ID

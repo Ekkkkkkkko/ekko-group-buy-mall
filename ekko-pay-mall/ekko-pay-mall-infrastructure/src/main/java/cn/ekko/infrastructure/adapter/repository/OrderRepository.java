@@ -158,6 +158,18 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
+    public int closeRefundOrder(String userId, String orderId) {
+        return orderDao.closeRefundOrder(userId, orderId);
+    }
+
+    @Override
+    public List<PayOrderEntity> queryTimeoutWaitRefundOrders() {
+        return orderDao.queryTimeoutWaitRefundOrders().stream()
+                .map(this::toPayOrderEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public int changeOrderPaySuccess(String orderId, Date payTime) {
         PayOrder order = new PayOrder();
         order.setOrderId(orderId);

@@ -27,7 +27,7 @@ public class GroupBuyNotifyJob {
     @Resource
     private RedissonClient redissonClient;
 
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "${group-buy-market.notify-job-cron:0/10 * * * * ?}")
     public void exec() {
         // 为什么加锁？分布式应用N台机器部署互备（一个应用实例挂了，还有另外可用的），任务调度会有N个同时执行，那么这里需要增加抢占机制，谁抢占到谁就执行。完毕后，下一轮继续抢占。
         RLock lock = redissonClient.getLock("ekko_group_buy_market_notify_job_exec");

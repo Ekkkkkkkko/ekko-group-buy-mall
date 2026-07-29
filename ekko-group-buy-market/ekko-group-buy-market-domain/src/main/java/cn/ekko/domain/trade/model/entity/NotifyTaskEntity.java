@@ -43,6 +43,10 @@ public class NotifyTaskEntity {
      * 唯一标识
      */
     private String uuid;
+    /**
+     * 最近一次发送失败原因
+     */
+    private String lastError;
 
     public String lockKey() {
         return "notify_job_lock_key_" + this.uuid;

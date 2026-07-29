@@ -97,6 +97,15 @@
           and status in ('PAY_SUCCESS', 'MARKET', 'DEAL_DONE')
     </update>
 
+    <update id="closeRefundOrder">
+        update pay_order
+        set status = 'CLOSE',
+            update_time = now()
+        where user_id = #{userId}
+          and order_id = #{orderId}
+          and status = 'WAIT_REFUND'
+    </update>
+
     <select id="queryUnPayOrder" parameterType="cn.ekko.infrastructure.dao.po.PayOrder" resultMap="dataMap">
         select product_id, product_name, order_id, order_time, total_amount, status, pay_url,
                market_type, activity_id, team_id, market_deduction_amount, pay_amount
@@ -161,6 +170,15 @@
           and market_type = 1
           and pay_time is not null
         order by id asc
+    </select>
+
+    <select id="queryTimeoutWaitRefundOrders" resultMap="dataMap">
+        select id, user_id, order_id, status, pay_amount, update_time
+        from pay_order
+        where status = 'WAIT_REFUND'
+          and update_time &lt;= date_sub(now(), interval 1 minute)
+        order by id asc
+        limit 50
     </select>
 
     <select id="queryNoPayNotifyOrder" resultType="java.lang.String">
