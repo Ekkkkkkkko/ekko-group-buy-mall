@@ -246,6 +246,15 @@ public class TradeRepository implements ITradeRepository {
         groupBuyOrderListReq.setOutTradeTime(tradePaySuccessEntity.getOutTradeTime());
 
         int updateOrderListStatusCount = groupBuyOrderListDao.updateOrderStatus2COMPLETE(groupBuyOrderListReq);
+        if (0 == updateOrderListStatusCount) {
+            GroupBuyOrderList settledOrder = groupBuyOrderListDao.queryGroupBuyOrderRecordByOutTradeNo(groupBuyOrderListReq);
+            if (null != settledOrder && TradeOrderStatusEnumVO.COMPLETE.getCode().equals(settledOrder.getStatus())) {
+                log.info("拼团交易重复结算，按幂等成功处理 userId:{} outTradeNo:{} teamId:{}",
+                        userEntity.getUserId(), tradePaySuccessEntity.getOutTradeNo(), settledOrder.getTeamId());
+                return null;
+            }
+            throw new AppException(ResponseCode.UPDATE_ZERO);
+        }
         if (1 != updateOrderListStatusCount) {
             throw new AppException(ResponseCode.UPDATE_ZERO);
         }
@@ -256,12 +265,9 @@ public class TradeRepository implements ITradeRepository {
             throw new AppException(ResponseCode.UPDATE_ZERO);
         }
 
-        // 3. 更新拼团完成状态
-        if (groupBuyTeamEntity.getTargetCount() - groupBuyTeamEntity.getCompleteCount() == 1) {
-            int updateOrderStatusCount = groupBuyOrderDao.updateOrderStatus2COMPLETE(groupBuyTeamEntity.getTeamId());
-            if (1 != updateOrderStatusCount) {
-                throw new AppException(ResponseCode.UPDATE_ZERO);
-            }
+        // 3. 达到目标人数时原子更新拼团完成状态。只有首次将状态从 0 改为 1 的事务生成通知任务。
+        int updateOrderStatusCount = groupBuyOrderDao.updateOrderStatus2COMPLETE(groupBuyTeamEntity.getTeamId());
+        if (1 == updateOrderStatusCount) {
 
             // 查询拼团交易完成外部单号列表
             List<String> outTradeNoList = groupBuyOrderListDao.queryGroupBuyCompleteOrderOutTradeNoListByTeamId(groupBuyTeamEntity.getTeamId());

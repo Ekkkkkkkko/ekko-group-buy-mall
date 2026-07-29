@@ -5,6 +5,7 @@ import cn.ekko.domain.trade.model.entity.GroupBuyTeamEntity;
 import cn.ekko.domain.trade.model.entity.MarketPayOrderEntity;
 import cn.ekko.domain.trade.model.entity.TradeSettlementRuleCommandEntity;
 import cn.ekko.domain.trade.model.entity.TradeSettlementRuleFilterBackEntity;
+import cn.ekko.domain.trade.model.valobj.TradeOrderStatusEnumVO;
 import cn.ekko.domain.trade.service.settlement.factory.TradeSettlementRuleFilterFactory;
 import cn.ekko.types.enums.ResponseCode;
 import cn.ekko.types.exception.AppException;
@@ -39,8 +40,10 @@ public class SettableRuleFilter implements ILogicHandler<TradeSettlementRuleComm
         // 外部交易时间 - 也就是用户支付完成的时间，这个时间要在拼团有效时间范围内
         Date outTradeTime = requestParameter.getOutTradeTime();
 
-        // 判断，外部交易时间，要小于拼团结束时间。否则抛异常。
-        if (!outTradeTime.before(groupBuyTeamEntity.getValidEndTime())) {
+        // 首次结算必须在拼团有效期内。已结算明细的重复请求直接进入幂等回查，
+        // 不能因为重试发生在队伍过期后而将原本成功的结算改判为失败。
+        if (!TradeOrderStatusEnumVO.COMPLETE.equals(marketPayOrderEntity.getTradeOrderStatusEnumVO())
+                && !outTradeTime.before(groupBuyTeamEntity.getValidEndTime())) {
             log.error("订单交易时间不在拼团有效时间范围内");
             throw new AppException(ResponseCode.E0106);
         }

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.Date;
 
 /**
  * 支付单实体对象
@@ -31,6 +32,8 @@ public class PayOrderEntity {
     private String teamId;
     private BigDecimal marketDeductionAmount;
     private BigDecimal payAmount;
+    /** 支付宝确认的支付成功时间 */
+    private Date payTime;
 
     @Override
     public String toString() {

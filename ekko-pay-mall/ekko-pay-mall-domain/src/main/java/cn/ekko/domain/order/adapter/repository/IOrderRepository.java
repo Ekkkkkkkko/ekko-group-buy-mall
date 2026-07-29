@@ -6,6 +6,7 @@ import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
 
 import java.util.List;
+import java.util.Date;
 
 /**
  * 订单仓储服务 —— domain 领域层就像一个饭点的厨师，他需要的各种材料，米、面、粮、油、水，都不是它生产的，它只是知道要做啥，要用啥，用通过管道【接口】把这些东西传递进来
@@ -40,10 +41,30 @@ public interface IOrderRepository {
     void updateOrderPayInfo(PayOrderEntity payOrderEntity);
 
     /**
+     * 按商城订单号查询本地支付订单。
+     */
+    PayOrderEntity queryOrderByOrderId(String orderId);
+
+    /**
      * 订单支付成功
      * @param orderId 订单ID
      */
-    void changeOrderPaySuccess(String orderId);
+    int changeOrderPaySuccess(String orderId, Date payTime);
+
+    /**
+     * 发布普通订单首次支付成功事件。
+     */
+    void publishPaySuccessEvent(String userId, String orderId);
+
+    /**
+     * 记录拼团服务已经确认该商城订单的成员结算。
+     */
+    void markMarketSettlementCompleted(String orderId);
+
+    /**
+     * 查询已支付但尚无拼团结算确认标记的订单。
+     */
+    List<PayOrderEntity> queryPendingMarketSettlementOrders();
 
     List<String> queryNoPayNotifyOrder();
 

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Resource;
 import java.util.List;
+import java.util.Date;
 
 /**
  * @author Ekko
@@ -42,8 +43,12 @@ public class NoPayNotifyOrderJob {
                 AlipayTradeQueryResponse alipayTradeQueryResponse = alipayClient.execute(request);
                 String code = alipayTradeQueryResponse.getCode();
                 // 判断状态码
-                if ("10000".equals(code)) {
-                    orderService.changeOrderPaySuccess(orderId);
+                String tradeStatus = alipayTradeQueryResponse.getTradeStatus();
+                Date payTime = alipayTradeQueryResponse.getSendPayDate();
+                if ("10000".equals(code)
+                        && ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus))
+                        && null != payTime) {
+                    orderService.changeOrderPaySuccess(orderId, payTime);
                 }
 
             }

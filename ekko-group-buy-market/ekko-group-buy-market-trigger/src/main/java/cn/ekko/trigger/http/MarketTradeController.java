@@ -243,9 +243,11 @@ public class MarketTradeController implements IMarketTradeService {
     @Override
     public Response<SettlementMarketPayOrderResponseDTO> settlementMarketPayOrder(@RequestBody SettlementMarketPayOrderRequestDTO requestDTO) {
         try {
-            log.info("营销交易组队结算开始:{} outTradeNo:{}", requestDTO.getUserId(), requestDTO.getOutTradeNo());
+            log.info("营销交易组队结算开始:{} outTradeNo:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(),
+                    null == requestDTO ? null : requestDTO.getOutTradeNo());
 
-            if (StringUtils.isBlank(requestDTO.getUserId()) || StringUtils.isBlank(requestDTO.getSource()) || StringUtils.isBlank(requestDTO.getChannel()) || StringUtils.isBlank(requestDTO.getOutTradeNo()) || null == requestDTO.getOutTradeTime()) {
+            if (null == requestDTO || StringUtils.isBlank(requestDTO.getUserId()) || StringUtils.isBlank(requestDTO.getSource()) || StringUtils.isBlank(requestDTO.getChannel()) || StringUtils.isBlank(requestDTO.getOutTradeNo()) || null == requestDTO.getOutTradeTime()) {
                 return Response.<SettlementMarketPayOrderResponseDTO>builder()
                         .code(ResponseCode.ILLEGAL_PARAMETER.getCode())
                         .info(ResponseCode.ILLEGAL_PARAMETER.getInfo())
@@ -279,13 +281,15 @@ public class MarketTradeController implements IMarketTradeService {
 
             return response;
         } catch (AppException e) {
-            log.error("营销交易组队结算异常:{} LockMarketPayOrderRequestDTO:{}", requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
+            log.error("营销交易组队结算异常:{} SettlementMarketPayOrderRequestDTO:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
             return Response.<SettlementMarketPayOrderResponseDTO>builder()
                     .code(e.getCode())
                     .info(e.getInfo())
                     .build();
         } catch (Exception e) {
-            log.error("营销交易组队结算失败:{} LockMarketPayOrderRequestDTO:{}", requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
+            log.error("营销交易组队结算失败:{} SettlementMarketPayOrderRequestDTO:{}",
+                    null == requestDTO ? null : requestDTO.getUserId(), JSON.toJSONString(requestDTO), e);
             return Response.<SettlementMarketPayOrderResponseDTO>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())

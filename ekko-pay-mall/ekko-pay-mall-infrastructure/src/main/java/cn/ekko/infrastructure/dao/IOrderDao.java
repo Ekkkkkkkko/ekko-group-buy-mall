@@ -16,7 +16,11 @@ public interface IOrderDao {
 
     void updateOrderPayInfo(PayOrder order);
 
-    void changeOrderPaySuccess(PayOrder order);
+    PayOrder queryOrderByOrderId(String orderId);
+
+    int changeOrderPaySuccess(PayOrder order);
+
+    List<PayOrder> queryPaidMarketOrders();
 
     List<String> queryNoPayNotifyOrder();
 

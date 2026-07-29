@@ -1,8 +1,10 @@
 package cn.ekko.domain.trade.service.settlement.filter;
 
 import cn.ekko.domain.trade.adapter.repository.ITradeRepository;
+import cn.ekko.domain.trade.model.entity.MarketPayOrderEntity;
 import cn.ekko.domain.trade.model.entity.TradeSettlementRuleCommandEntity;
 import cn.ekko.domain.trade.model.entity.TradeSettlementRuleFilterBackEntity;
+import cn.ekko.domain.trade.model.valobj.TradeOrderStatusEnumVO;
 import cn.ekko.domain.trade.service.settlement.factory.TradeSettlementRuleFilterFactory;
 import cn.ekko.types.enums.ResponseCode;
 import cn.ekko.types.exception.AppException;
@@ -26,6 +28,12 @@ public class SCRuleFilter implements ILogicHandler<TradeSettlementRuleCommandEnt
     @Override
     public TradeSettlementRuleFilterBackEntity apply(TradeSettlementRuleCommandEntity requestParameter, TradeSettlementRuleFilterFactory.DynamicContext dynamicContext) throws Exception {
         log.info("结算规则过滤-渠道黑名单校验{} outTradeNo:{}", requestParameter.getUserId(), requestParameter.getOutTradeNo());
+
+        MarketPayOrderEntity marketPayOrderEntity = dynamicContext.getMarketPayOrderEntity();
+        if (null != marketPayOrderEntity
+                && TradeOrderStatusEnumVO.COMPLETE.equals(marketPayOrderEntity.getTradeOrderStatusEnumVO())) {
+            return next(requestParameter, dynamicContext);
+        }
 
         // sc 渠道黑名单拦截
         boolean intercept = repository.isSCBlackIntercept(requestParameter.getSource(), requestParameter.getChannel());

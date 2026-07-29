@@ -4,6 +4,7 @@ import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
 
 import java.util.List;
+import java.util.Date;
 
 /**
  * 订单服务
@@ -22,7 +23,12 @@ public interface IOrderService {
      * 更新订单状态
      * @param orderId 订单ID
      */
-    void changeOrderPaySuccess(String orderId);
+    boolean changeOrderPaySuccess(String orderId, Date payTime);
+
+    /**
+     * 查询需要重试拼团结算的已支付订单。
+     */
+    List<PayOrderEntity> queryPendingMarketSettlementOrders();
 
     /**
      * 查询有效期内，未接收到支付回调的订单

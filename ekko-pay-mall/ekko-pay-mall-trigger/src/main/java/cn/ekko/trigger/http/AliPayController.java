@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 
 @Slf4j
@@ -103,42 +106,47 @@ public class AliPayController implements IPayService {
     @RequestMapping(value = "pay_notify", method = RequestMethod.POST)
     public String payNotify(HttpServletRequest request) {
         try {
-            log.info("支付回调，消息接收 {}", request.getParameter("trade_status"));
-            if (request.getParameter("trade_status").equals("TRADE_SUCCESS")) {
-                Map<String, String> params = new HashMap<>();
-                Map<String, String[]> requestParams = request.getParameterMap();
-                for (String name : requestParams.keySet()) {
-                    params.put(name, request.getParameter(name));
-                }
-
-                String tradeNo = params.get("out_trade_no");
-                String gmtPayment = params.get("gmt_payment");
-                String alipayTradeNo = params.get("trade_no");
-
-                String sign = params.get("sign");
-                String content = AlipaySignature.getSignCheckContentV1(params);
-                boolean checkSignature = AlipaySignature.rsa256CheckContent(content, sign, alipayPublicKey, "UTF-8"); // 验证签名
-                // 支付宝验签
-                if (checkSignature) {
-                    // 验签通过
-                    log.info("支付回调，交易名称: {}", params.get("subject"));
-                    log.info("支付回调，交易状态: {}", params.get("trade_status"));
-                    log.info("支付回调，支付宝交易凭证号: {}", params.get("trade_no"));
-                    log.info("支付回调，商户订单号: {}", params.get("out_trade_no"));
-                    log.info("支付回调，交易金额: {}", params.get("total_amount"));
-                    log.info("支付回调，买家在支付宝唯一id: {}", params.get("buyer_id"));
-                    log.info("支付回调，买家付款时间: {}", params.get("gmt_payment"));
-                    log.info("支付回调，买家付款金额: {}", params.get("buyer_pay_amount"));
-                    log.info("支付回调，支付回调，更新订单 {}", tradeNo);
-                    // 更新订单未已支付
-                    orderService.changeOrderPaySuccess(tradeNo);
-                }
+            Map<String, String> params = new HashMap<>();
+            Map<String, String[]> requestParams = request.getParameterMap();
+            for (String name : requestParams.keySet()) {
+                params.put(name, request.getParameter(name));
             }
-            return "success";
+
+            String sign = params.get("sign");
+            String content = AlipaySignature.getSignCheckContentV1(params);
+            boolean checkSignature = AlipaySignature.rsa256CheckContent(content, sign, alipayPublicKey, "UTF-8");
+            if (!checkSignature) {
+                log.warn("支付回调验签失败 outTradeNo:{}", params.get("out_trade_no"));
+                return "failure";
+            }
+
+            String tradeStatus = params.get("trade_status");
+            if (!"TRADE_SUCCESS".equals(tradeStatus)) {
+                log.info("支付回调非成功状态，不执行支付副作用 outTradeNo:{} tradeStatus:{}",
+                        params.get("out_trade_no"), tradeStatus);
+                return "success";
+            }
+
+            String orderId = params.get("out_trade_no");
+            Date payTime = parsePayTime(params.get("gmt_payment"));
+            log.info("支付回调验签成功，处理支付事实 orderId:{} alipayTradeNo:{} payTime:{}",
+                    orderId, params.get("trade_no"), payTime);
+
+            boolean handled = orderService.changeOrderPaySuccess(orderId, payTime);
+            return handled ? "success" : "failure";
         } catch (Exception e) {
             log.error("支付回调，处理失败", e);
-            return "false";
+            return "failure";
         }
+    }
+
+    private Date parsePayTime(String gmtPayment) throws ParseException {
+        if (null == gmtPayment || gmtPayment.isBlank()) {
+            throw new ParseException("支付宝支付时间gmt_payment为空", 0);
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        dateFormat.setLenient(false);
+        return dateFormat.parse(gmtPayment);
     }
 
 }

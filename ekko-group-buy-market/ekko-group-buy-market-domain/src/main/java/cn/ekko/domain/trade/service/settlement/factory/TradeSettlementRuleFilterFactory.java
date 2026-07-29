@@ -36,7 +36,7 @@ public class TradeSettlementRuleFilterFactory {
 
         // 组装链
         LinkArmory<TradeSettlementRuleCommandEntity, DynamicContext, TradeSettlementRuleFilterBackEntity> linkArmory =
-                new LinkArmory<>("交易结算规则过滤链", scRuleFilter, outTradeNoRuleFilter, settableRuleFilter, endRuleFilter);
+                new LinkArmory<>("交易结算规则过滤链", outTradeNoRuleFilter, scRuleFilter, settableRuleFilter, endRuleFilter);
 
         // 链对象
         return linkArmory.getLogicLink();

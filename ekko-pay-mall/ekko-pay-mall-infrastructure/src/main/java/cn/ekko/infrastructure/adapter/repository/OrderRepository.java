@@ -21,12 +21,18 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.annotation.Resource;
 import java.util.List;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 订单仓储实现
  */
 @Repository
 public class OrderRepository implements IOrderRepository {
+
+    private static final String MARKET_SETTLEMENT_COMPLETED_KEY_PREFIX = "pay_order:market_settlement:completed:";
+    private static final long MARKET_SETTLEMENT_MARK_TTL_MILLIS = TimeUnit.DAYS.toMillis(30);
 
     @Resource
     private IOrderDao orderDao;
@@ -120,17 +126,68 @@ public class OrderRepository implements IOrderRepository {
     }
 
     @Override
-    public void changeOrderPaySuccess(String orderId) {
+    public PayOrderEntity queryOrderByOrderId(String orderId) {
+        PayOrder order = orderDao.queryOrderByOrderId(orderId);
+        if (null == order) return null;
+
+        return PayOrderEntity.builder()
+                .userId(order.getUserId())
+                .orderId(order.getOrderId())
+                .orderStatus(OrderStatusVO.valueOf(order.getStatus()))
+                .marketType(MarketTypeVO.valueOf(order.getMarketType()))
+                .activityId(order.getActivityId())
+                .teamId(order.getTeamId())
+                .marketDeductionAmount(order.getMarketDeductionAmount())
+                .payAmount(order.getPayAmount())
+                .payTime(order.getPayTime())
+                .build();
+    }
+
+    @Override
+    public int changeOrderPaySuccess(String orderId, Date payTime) {
         PayOrder order = new PayOrder();
         order.setOrderId(orderId);
         order.setStatus(OrderStatusVO.PAY_SUCCESS.getCode());
-        orderDao.changeOrderPaySuccess(order);
+        order.setPayTime(payTime);
+        return orderDao.changeOrderPaySuccess(order);
+    }
 
-        // 发送MQ消息
-        BaseEvent.EventMessage<PaySuccessMessageEvent.PaySuccessMessage> eventMessage = paySuccessMessageEvent.buildEventMessage(PaySuccessMessageEvent.PaySuccessMessage.builder().tradeNo(orderId).build());
+    @Override
+    public void publishPaySuccessEvent(String userId, String orderId) {
+        BaseEvent.EventMessage<PaySuccessMessageEvent.PaySuccessMessage> eventMessage = paySuccessMessageEvent.buildEventMessage(
+                PaySuccessMessageEvent.PaySuccessMessage.builder()
+                        .userId(userId)
+                        .tradeNo(orderId)
+                        .build()
+        );
         PaySuccessMessageEvent.PaySuccessMessage paySuccessMessage = eventMessage.getData();
 
         eventBus.post(JSON.toJSONString(paySuccessMessage));
+    }
+
+    @Override
+    public void markMarketSettlementCompleted(String orderId) {
+        redisService.setValue(
+                MARKET_SETTLEMENT_COMPLETED_KEY_PREFIX + orderId,
+                Boolean.TRUE,
+                MARKET_SETTLEMENT_MARK_TTL_MILLIS
+        );
+    }
+
+    @Override
+    public List<PayOrderEntity> queryPendingMarketSettlementOrders() {
+        return orderDao.queryPaidMarketOrders().stream()
+                .filter(order -> !redisService.isExists(MARKET_SETTLEMENT_COMPLETED_KEY_PREFIX + order.getOrderId()))
+                .map(order -> PayOrderEntity.builder()
+                        .userId(order.getUserId())
+                        .orderId(order.getOrderId())
+                        .orderStatus(OrderStatusVO.valueOf(order.getStatus()))
+                        .marketType(MarketTypeVO.valueOf(order.getMarketType()))
+                        .activityId(order.getActivityId())
+                        .teamId(order.getTeamId())
+                        .payTime(order.getPayTime())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     @Override
