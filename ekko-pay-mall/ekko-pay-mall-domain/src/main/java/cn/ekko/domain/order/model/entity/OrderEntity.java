@@ -1,5 +1,6 @@
 package cn.ekko.domain.order.model.entity;
 
+import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import cn.ekko.domain.order.model.valobj.OrderStatusVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,5 +33,18 @@ public class OrderEntity {
     private BigDecimal totalAmount;
     /** 支付信息 */
     private String payUrl;
+    private MarketTypeVO marketType;
+    private Long activityId;
+    private String teamId;
+    private BigDecimal marketDeductionAmount;
+    private BigDecimal payAmount;
+
+    public void applyMarketDiscount(MarketPayDiscountEntity marketPayDiscountEntity) {
+        this.marketType = MarketTypeVO.GROUP_BUY_MARKET;
+        this.teamId = marketPayDiscountEntity.getTeamId();
+        this.totalAmount = marketPayDiscountEntity.getOriginalPrice();
+        this.marketDeductionAmount = marketPayDiscountEntity.getDeductionPrice();
+        this.payAmount = marketPayDiscountEntity.getPayPrice();
+    }
 
 }

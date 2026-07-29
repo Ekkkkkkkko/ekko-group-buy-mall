@@ -7,11 +7,14 @@ import cn.ekko.domain.order.model.entity.OrderEntity;
 import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ProductEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
+import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import cn.ekko.domain.order.model.valobj.OrderStatusVO;
 import cn.ekko.infrastructure.dao.IOrderDao;
 import cn.ekko.infrastructure.dao.po.PayOrder;
 import cn.ekko.infrastructure.redis.IRedisService;
 import cn.ekko.types.event.BaseEvent;
+import cn.ekko.types.enums.ResponseCode;
+import cn.ekko.types.exception.AppException;
 import com.alibaba.fastjson2.JSON;
 import com.google.common.eventbus.EventBus;
 import org.springframework.stereotype.Repository;
@@ -52,6 +55,11 @@ public class OrderRepository implements IOrderRepository {
                 .orderTime(order.getOrderTime())
                 .totalAmount(order.getTotalAmount())
                 .payUrl(order.getPayUrl())
+                .marketType(MarketTypeVO.valueOf(order.getMarketType()))
+                .activityId(order.getActivityId())
+                .teamId(order.getTeamId())
+                .marketDeductionAmount(order.getMarketDeductionAmount())
+                .payAmount(order.getPayAmount())
                 .build();
     }
 
@@ -67,13 +75,38 @@ public class OrderRepository implements IOrderRepository {
         order.setProductName(productEntity.getProductName());
         order.setOrderId(orderEntity.getOrderId());
         order.setOrderTime(orderEntity.getOrderTime());
-        order.setTotalAmount(productEntity.getPrice());
+        order.setTotalAmount(orderEntity.getTotalAmount());
         order.setStatus(orderEntity.getOrderStatus().getCode());
+        order.setMarketType(orderEntity.getMarketType().getCode());
+        order.setActivityId(orderEntity.getActivityId());
+        order.setTeamId(orderEntity.getTeamId());
+        order.setMarketDeductionAmount(orderEntity.getMarketDeductionAmount());
+        order.setPayAmount(orderEntity.getPayAmount());
 
         orderDao.insert(order);
 
         // 存入缓存；缓存key聚合到对象中提供
         redisService.setValue(PayOrder.cacheKey(userId, orderEntity.getOrderId()), order);
+    }
+
+    @Override
+    public void updateOrderMarketInfo(OrderEntity orderEntity) {
+        PayOrder order = PayOrder.builder()
+                .orderId(orderEntity.getOrderId())
+                .totalAmount(orderEntity.getTotalAmount())
+                .marketType(orderEntity.getMarketType().getCode())
+                .activityId(orderEntity.getActivityId())
+                .teamId(orderEntity.getTeamId())
+                .marketDeductionAmount(orderEntity.getMarketDeductionAmount())
+                .payAmount(orderEntity.getPayAmount())
+                .build();
+        int updateCount = orderDao.updateOrderMarketInfo(order);
+        if (1 != updateCount) {
+            throw new AppException(
+                    ResponseCode.UN_ERROR.getCode(),
+                    "保存订单营销锁单结果失败"
+            );
+        }
     }
 
     @Override

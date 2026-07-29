@@ -100,7 +100,7 @@ public class ActivityRepository extends AbstractRepository implements IActivityR
 
         return SCSkuActivityVO.builder()
                 .source(scSkuActivity.getSource())
-                .chanel(scSkuActivity.getChannel())
+                .channel(scSkuActivity.getChannel())
                 .activityId(scSkuActivity.getActivityId())
                 .goodsId(scSkuActivity.getGoodsId())
                 .build();

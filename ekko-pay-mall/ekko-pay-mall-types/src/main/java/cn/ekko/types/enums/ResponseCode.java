@@ -12,6 +12,12 @@ public enum ResponseCode {
     SUCCESS("0000", "成功"),
     UN_ERROR("0001", "未知失败"),
     ILLEGAL_PARAMETER("0002", "非法参数"),
+
+    GROUP_BUY_HTTP_ERROR("1001", "拼团营销HTTP调用失败"),
+    GROUP_BUY_EMPTY_RESPONSE("1002", "拼团营销返回空响应"),
+    GROUP_BUY_BUSINESS_ERROR("1003", "拼团营销业务处理失败"),
+    GROUP_BUY_INVALID_RESPONSE("1004", "拼团营销返回数据不完整"),
+    ORDER_PAY_AMOUNT_ERROR("1005", "订单支付金额无效"),
     ;
 
     private String code;

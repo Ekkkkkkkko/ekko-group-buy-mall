@@ -18,7 +18,7 @@ public class SCSkuActivityVO {
     /** 渠道 */
     private String source;
     /** 来源 */
-    private String chanel;
+    private String channel;
     /** 活动ID */
     private Long activityId;
     /** 商品ID */

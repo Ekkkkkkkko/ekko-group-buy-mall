@@ -1,10 +1,13 @@
 package cn.ekko.domain.order.model.entity;
 
 import cn.ekko.domain.order.model.valobj.OrderStatusVO;
+import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 
 /**
  * 支付单实体对象
@@ -23,6 +26,11 @@ public class PayOrderEntity {
     private String payUrl;
     /** 订单状态；0-创建完成、1-等待支付、2-支付成功、3-交易完成、4-订单关单 */
     private OrderStatusVO orderStatus;
+    private MarketTypeVO marketType;
+    private Long activityId;
+    private String teamId;
+    private BigDecimal marketDeductionAmount;
+    private BigDecimal payAmount;
 
     @Override
     public String toString() {

@@ -1,5 +1,6 @@
 package cn.ekko.domain.order.service;
 
+import cn.ekko.domain.order.adapter.port.IGroupBuyMarketPort;
 import cn.ekko.domain.order.adapter.port.IProductPort;
 import cn.ekko.domain.order.adapter.repository.IOrderRepository;
 import cn.ekko.domain.order.model.aggregate.CreateOrderAggregate;
@@ -28,8 +29,10 @@ public class OrderService extends AbstractOrderService {
     @Resource
     private AlipayClient alipayClient;
 
-    public OrderService(IOrderRepository repository, IProductPort productPort) {
-        super(repository, productPort);
+    public OrderService(IOrderRepository repository,
+                        IProductPort productPort,
+                        IGroupBuyMarketPort groupBuyMarketPort) {
+        super(repository, productPort, groupBuyMarketPort);
     }
 
     @Override
@@ -38,14 +41,14 @@ public class OrderService extends AbstractOrderService {
     }
 
     @Override
-    protected PayOrderEntity doPrepayOrder(String userId, String productId, String productName, String orderId, BigDecimal totalAmount) throws AlipayApiException {
+    protected PayOrderEntity doPrepayOrder(String userId, String productId, String productName, String orderId, BigDecimal payAmount) throws AlipayApiException {
         AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
         request.setNotifyUrl(notifyUrl);
         request.setReturnUrl(returnUrl);
 
         JSONObject bizContent = new JSONObject();
         bizContent.put("out_trade_no", orderId);
-        bizContent.put("total_amount", totalAmount.toString());
+        bizContent.put("total_amount", payAmount.toString());
         bizContent.put("subject", productName);
         bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");
         request.setBizContent(bizContent.toString());

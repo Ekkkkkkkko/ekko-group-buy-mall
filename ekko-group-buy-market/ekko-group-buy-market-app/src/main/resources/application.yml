@@ -3,3 +3,7 @@ spring:
     name: ekko-group-buy-market-app
   profiles:
     active: dev
+
+# HTTP 回调白名单必须由部署环境显式提供；多个地址使用英文逗号分隔
+group-buy-market:
+  notify-url-whitelist: ${GROUP_BUY_NOTIFY_URL_WHITELIST:}

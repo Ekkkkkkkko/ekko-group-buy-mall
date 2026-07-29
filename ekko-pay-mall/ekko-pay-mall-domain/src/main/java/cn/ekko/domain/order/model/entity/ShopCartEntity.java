@@ -1,5 +1,6 @@
 package cn.ekko.domain.order.model.entity;
 
+import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,5 +20,8 @@ public class ShopCartEntity {
 
     /** 商品ID */
     private String productId;
+    private String teamId;
+    private Long activityId;
+    private MarketTypeVO marketType;
 
 }

@@ -28,6 +28,11 @@ public interface IOrderRepository {
     void doSaveOrder(CreateOrderAggregate orderAggregate);
 
     /**
+     * 保存拼团锁单返回的价格快照和队伍信息。
+     */
+    void updateOrderMarketInfo(OrderEntity orderEntity);
+
+    /**
      * 更新订单支付信息
      *
      * @param payOrderEntity 支付单

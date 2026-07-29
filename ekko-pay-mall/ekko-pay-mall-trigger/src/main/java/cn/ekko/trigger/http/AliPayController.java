@@ -5,8 +5,10 @@ import cn.ekko.api.dto.CreatePayRequestDTO;
 import cn.ekko.api.response.Response;
 import cn.ekko.domain.order.model.entity.PayOrderEntity;
 import cn.ekko.domain.order.model.entity.ShopCartEntity;
+import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import cn.ekko.domain.order.service.IOrderService;
 import cn.ekko.types.enums.ResponseCode;
+import cn.ekko.types.exception.AppException;
 import com.alipay.api.internal.util.AlipaySignature;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,13 +36,22 @@ public class AliPayController implements IPayService {
     @RequestMapping(value = "create_pay_order", method = RequestMethod.POST)
     public Response<String> createPayOrder(@RequestBody CreatePayRequestDTO createPayRequestDTO) {
         try {
-            log.info("商品下单，根据商品ID创建支付单开始 userId:{} productId:{}", createPayRequestDTO.getUserId(), createPayRequestDTO.getUserId());
+            validateCreatePayRequest(createPayRequestDTO);
+
             String userId = createPayRequestDTO.getUserId();
             String productId = createPayRequestDTO.getProductId();
+            MarketTypeVO marketType = MarketTypeVO.valueOf(createPayRequestDTO.getMarketType());
+
+            log.info("商品下单，根据商品ID创建支付单开始 userId:{} productId:{} marketType:{}",
+                    userId, productId, marketType);
+
             // 下单
             PayOrderEntity payOrderEntity = orderService.createOrder(ShopCartEntity.builder()
                     .userId(userId)
                     .productId(productId)
+                    .teamId(createPayRequestDTO.getTeamId())
+                    .activityId(createPayRequestDTO.getActivityId())
+                    .marketType(marketType)
                     .build());
 
             log.info("商品下单，根据商品ID创建支付单完成 userId:{} productId:{} orderId:{}", userId, productId, payOrderEntity.getOrderId());
@@ -49,12 +60,43 @@ public class AliPayController implements IPayService {
                     .info(ResponseCode.SUCCESS.getInfo())
                     .data(payOrderEntity.getPayUrl())
                     .build();
+        } catch (AppException e) {
+            log.error("商品下单业务失败 userId:{} productId:{}",
+                    null == createPayRequestDTO ? null : createPayRequestDTO.getUserId(),
+                    null == createPayRequestDTO ? null : createPayRequestDTO.getProductId(), e);
+            return Response.<String>builder()
+                    .code(e.getCode())
+                    .info(e.getInfo())
+                    .build();
         } catch (Exception e) {
-            log.error("商品下单，根据商品ID创建支付单失败 userId:{} productId:{}", createPayRequestDTO.getUserId(), createPayRequestDTO.getUserId(), e);
+            log.error("商品下单，根据商品ID创建支付单失败 userId:{} productId:{}",
+                    null == createPayRequestDTO ? null : createPayRequestDTO.getUserId(),
+                    null == createPayRequestDTO ? null : createPayRequestDTO.getProductId(), e);
             return Response.<String>builder()
                     .code(ResponseCode.UN_ERROR.getCode())
                     .info(ResponseCode.UN_ERROR.getInfo())
                     .build();
+        }
+    }
+
+    private void validateCreatePayRequest(CreatePayRequestDTO requestDTO) {
+        if (null == requestDTO
+                || null == requestDTO.getUserId()
+                || requestDTO.getUserId().isBlank()
+                || null == requestDTO.getProductId()
+                || requestDTO.getProductId().isBlank()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "用户ID和商品ID不能为空");
+        }
+
+        final MarketTypeVO marketType;
+        try {
+            marketType = MarketTypeVO.valueOf(requestDTO.getMarketType());
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), e.getMessage(), e);
+        }
+
+        if (MarketTypeVO.GROUP_BUY_MARKET.equals(marketType) && null == requestDTO.getActivityId()) {
+            throw new AppException(ResponseCode.ILLEGAL_PARAMETER.getCode(), "拼团订单的活动ID不能为空");
         }
     }
 

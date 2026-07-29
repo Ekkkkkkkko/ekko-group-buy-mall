@@ -3,3 +3,15 @@ spring:
     name: ekko-pay-mall
   profiles:
     active: dev
+
+server:
+  port: ${SERVER_PORT:8092}
+
+# 非敏感的拼团服务连接入口；各环境可使用环境变量覆盖
+group-buy-market:
+  api-url: ${GROUP_BUY_MARKET_API_URL:http://127.0.0.1:8091/}
+  source: ${GROUP_BUY_MARKET_SOURCE:s01}
+  channel: ${GROUP_BUY_MARKET_CHANNEL:c01}
+  notify-type: ${GROUP_BUY_MARKET_NOTIFY_TYPE:HTTP}
+  notify-url: ${GROUP_BUY_MARKET_NOTIFY_URL:}
+  notify-mq: ${GROUP_BUY_MARKET_NOTIFY_MQ:}
