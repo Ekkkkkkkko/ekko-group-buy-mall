@@ -38,6 +38,10 @@
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
         <!-- 支付宝沙箱支付对接文档：https://opendocs.alipay.com/common/02kkv7 -->
         <dependency>
             <groupId>com.alipay.sdk</groupId>

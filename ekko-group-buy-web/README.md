@@ -1,0 +1,52 @@
+# LinkNest 联巢前端
+
+基于 Vue 3 + Vite 的路由器选购与拼团商城前端。页面支持设备浏览、单独购买、拼团购买、微信扫码登录、订单查询、退单交互，以及基于知识库的智能客服和文档管理。
+
+## 本地运行
+
+```bash
+npm install
+npm run dev
+```
+
+默认访问 `http://localhost:5173`。
+
+开发服务器会把 `/mall-api` 代理到商城服务 8092，把 `/chat-api` 代理到知识库服务 8095。如服务地址不同，复制 `.env.example` 为 `.env.local` 后修改：
+
+```bash
+VITE_PAY_MALL_TARGET=http://127.0.0.1:8092
+VITE_GROUP_CHAT_TARGET=http://127.0.0.1:8095
+```
+
+## 接口关系
+
+- 商品列表：`GET /api/v1/products`
+- 商品详情与拼团聚合：`GET /api/v1/products/{productId}?userId=...`
+- 普通/拼团下单：`POST /api/v1/alipay/create_pay_order`
+- 订单列表：`POST /api/v1/alipay/query_user_order_list`
+- 退单：`POST /api/v1/alipay/refund_order`
+- 场景绑定扫码登录：`GET /api/v1/login/weixin_qrcode_ticket_scene` 与 `check_login_scene`
+- 智能客服：`POST /api/v1/chat/stream` 以 SSE 依次返回进度、引用、回答分片和完成事件；`POST /api/v1/chat` 保留为同步兼容接口
+- 上传知识文档：`POST /api/v1/documents`
+- 查询知识文档：`GET /api/v1/documents/{id}`
+- 删除 MySQL 元数据与 ES 分片：`DELETE /api/v1/documents/{id}`
+
+商城首页保留右下角“问一问”悬浮客服，同时顶部导航的“智能客服”进入 `#/assistant` 独立工作台。两个入口均使用 SSE 逐段展示模型回答。独立页面支持新建、切换和删除多个对话，并把最近 24 个会话及后端会话标识保存在当前浏览器；会话不会跨设备同步。命中来源包含 `images` 时，客服来源卡片会展示私有 OSS 临时签名图片，点击可查看原图；短期签名图片地址不会写入长期浏览器历史。
+
+商城采用拼购电商式信息层级：顶部说明、拼购主视觉、选购分类、热门商品、多人拼价和购买动作优先展示；不会伪造销量、补贴或倒计时，价格和活动仍以下单时服务端结果为准。独立客服页采用 OpenAI 式中性工作区布局：左侧历史会话、居中消息流、底部输入框；这里只借鉴信息架构和交互层级，不复制第三方品牌素材。
+
+首页悬浮客服与独立客服页共用中性白底消息语言，并以商城红作为唯一强调色；桌面面板限制为 520×640，移动端保留安全边距，避免遮挡大面积商品内容或产生横向溢出。
+
+商城账号会话使用 JWT `sub` 和 `exp` 判断登录状态。登录后导航明确显示“已登录”，账号窗口默认展示账号名、登录方式和有效时间，修改密码作为二级操作。页面重新可见、打开账号窗口或其他标签页修改登录存储时，都会重新同步本机会话；过期或认证失败会清理本机登录数据。
+
+首页 Footer 的“知识库管理”进入 `#/documents`，该页面提供上传、按 ID 查询和删除；删除时 OSS 文件按当前约定保留。
+
+浏览器不直接调用 `ekko-group-buy-market`。商品详情和下单由商城服务在后端与拼团服务协作。
+
+商城服务未启动时，页面会自动进入“演示模式”，使用本地商品和订单数据，且不会发起真实支付。
+
+## 构建
+
+```bash
+npm run build
+```

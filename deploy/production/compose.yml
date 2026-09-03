@@ -1,0 +1,148 @@
+name: ekko-group-buy
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 20m
+    max-file: "3"
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD" --maxmemory 192mb --maxmemory-policy noeviction
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    mem_limit: 256m
+    logging: *default-logging
+    networks: [backend]
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+    mem_limit: 384m
+    logging: *default-logging
+    networks: [backend]
+
+  elasticsearch:
+    image: elasticsearch:8.18.6
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      xpack.security.http.ssl.enabled: "false"
+      ES_JAVA_OPTS: -Xms384m -Xmx384m
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9200/_cluster/health >/dev/null"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    mem_limit: 768m
+    logging: *default-logging
+    networks: [backend]
+
+  market:
+    image: eclipse-temurin:21-jre-jammy
+    restart: unless-stopped
+    working_dir: /app
+    env_file: market.env
+    command: ["sh", "-c", "exec java $$JAVA_OPTS -jar /app/app.jar"]
+    volumes:
+      - ./artifacts/ekko-group-buy-market-app.jar:/app/app.jar:ro
+      - ./logs/market:/app/data/log
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    mem_limit: 768m
+    logging: *default-logging
+    networks: [backend]
+
+  mall:
+    image: eclipse-temurin:21-jre-jammy
+    restart: unless-stopped
+    working_dir: /app
+    env_file: mall.env
+    command: ["sh", "-c", "exec java $$JAVA_OPTS -jar /app/app.jar"]
+    volumes:
+      - ./artifacts/ekko-pay-mall-app.jar:/app/app.jar:ro
+      - ./logs/mall:/app/data/log
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      market:
+        condition: service_started
+    mem_limit: 768m
+    logging: *default-logging
+    networks: [backend]
+
+  chat:
+    image: eclipse-temurin:21-jre-jammy
+    restart: unless-stopped
+    working_dir: /app
+    env_file: chat.env
+    command: ["sh", "-c", "exec java $$JAVA_OPTS -jar /app/app.jar"]
+    volumes:
+      - ./artifacts/ekko-group-chat.jar:/app/app.jar:ro
+      - ./logs/chat:/app/data/log
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    mem_limit: 896m
+    logging: *default-logging
+    networks: [backend]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+      - ./web:/usr/share/nginx/html:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      mall:
+        condition: service_started
+      chat:
+        condition: service_started
+    mem_limit: 96m
+    logging: *default-logging
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  elasticsearch-data:

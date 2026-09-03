@@ -21,6 +21,11 @@ public enum ResponseCode {
     AUTH_REQUIRED("1006", "请先登录或重新登录"),
     ORDER_NOT_FOUND("1007", "订单不存在或不属于当前用户"),
     ORDER_STATUS_ERROR("1008", "当前订单状态不允许退单"),
+    PRODUCT_NOT_FOUND("1009", "商品不存在或已下架"),
+    ACCOUNT_EXISTS("1010", "用户名已存在"),
+    ACCOUNT_CREDENTIAL_ERROR("1011", "账号或密码错误"),
+    ACCOUNT_DISABLED("1012", "账号已停用"),
+    PASSWORD_CHANGE_ERROR("1013", "密码修改失败"),
     ;
 
     private String code;

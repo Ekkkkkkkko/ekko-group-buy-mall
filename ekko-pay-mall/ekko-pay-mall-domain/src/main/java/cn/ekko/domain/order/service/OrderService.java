@@ -5,6 +5,7 @@ import cn.ekko.domain.order.adapter.port.IProductPort;
 import cn.ekko.domain.order.adapter.repository.IOrderRepository;
 import cn.ekko.domain.order.model.aggregate.CreateOrderAggregate;
 import cn.ekko.domain.order.model.entity.PayOrderEntity;
+import cn.ekko.domain.order.model.entity.ShopCartEntity;
 import cn.ekko.domain.order.model.valobj.OrderStatusVO;
 import cn.ekko.domain.order.model.valobj.MarketTypeVO;
 import cn.ekko.types.enums.ResponseCode;
@@ -21,10 +22,10 @@ import com.alipay.api.response.AlipayTradeFastpayRefundQueryResponse;
 import com.alipay.api.response.AlipayTradeRefundResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -45,13 +46,22 @@ public class OrderService extends AbstractOrderService {
     private String notifyUrl;
     @Value("${alipay.return_url}")
     private String returnUrl;
-    @Resource
+    @Autowired(required = false)
     private AlipayClient alipayClient;
 
     public OrderService(IOrderRepository repository,
                         IProductPort productPort,
                         IGroupBuyMarketPort groupBuyMarketPort) {
         super(repository, productPort, groupBuyMarketPort);
+    }
+
+    /**
+     * 支付客户端未配置时必须在订单落库和营销锁单之前失败，避免产生无效锁单和补偿任务。
+     */
+    @Override
+    public PayOrderEntity createOrder(ShopCartEntity shopCartEntity) throws Exception {
+        requireAlipayClient();
+        return super.createOrder(shopCartEntity);
     }
 
     @Override
@@ -72,7 +82,7 @@ public class OrderService extends AbstractOrderService {
         bizContent.put("product_code", "FAST_INSTANT_TRADE_PAY");
         request.setBizContent(bizContent.toString());
 
-        String form = alipayClient.pageExecute(request).getBody();
+        String form = requireAlipayClient().pageExecute(request).getBody();
 
         PayOrderEntity payOrderEntity = new PayOrderEntity();
         payOrderEntity.setOrderId(orderId);
@@ -301,7 +311,7 @@ public class OrderService extends AbstractOrderService {
         refundModel.setRefundReason("拼团退单");
         refundRequest.setBizModel(refundModel);
 
-        AlipayTradeRefundResponse refundResponse = alipayClient.execute(refundRequest);
+        AlipayTradeRefundResponse refundResponse = requireAlipayClient().execute(refundRequest);
         if (null == refundResponse
                 || !ALIPAY_SUCCESS_CODE.equals(refundResponse.getCode())
                 || !refundResponse.isSuccess()) {
@@ -342,7 +352,7 @@ public class OrderService extends AbstractOrderService {
         queryModel.setOutRequestNo(refundRequestNo);
         queryRequest.setBizModel(queryModel);
 
-        AlipayTradeFastpayRefundQueryResponse queryResponse = alipayClient.execute(queryRequest);
+        AlipayTradeFastpayRefundQueryResponse queryResponse = requireAlipayClient().execute(queryRequest);
         if (null == queryResponse) {
             throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付宝退款查询无响应，保留WAIT_REFUND");
         }
@@ -397,6 +407,13 @@ public class OrderService extends AbstractOrderService {
         String requestNo = "REFUND_" + outTradeNo;
         if (requestNo.length() <= MAX_REFUND_REQUEST_NO_LENGTH) return requestNo;
         return "REFUND_" + DigestUtils.sha256Hex(outTradeNo).substring(0, 40);
+    }
+
+    private AlipayClient requireAlipayClient() {
+        if (null == alipayClient) {
+            throw new AppException(ResponseCode.UN_ERROR.getCode(), "支付功能尚未配置");
+        }
+        return alipayClient;
     }
 
     private void validateRefundMessageKey(String userId, String outTradeNo) {

@@ -187,31 +187,4 @@
         </plugins>
     </build>
 
-    <profiles>
-        <profile>
-            <id>dev</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <properties>
-                <java_jvm>-Xms1G -Xmx1G -server -Xss256K -Dspring.profiles.active=test -XX:+DisableExplicitGC -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/export/Logs/ekko-pay-mall-boot -Xlog:gc*:file=/export/Logs/ekko-pay-mall-boot/gc-ekko-pay-mall-boot.log:time,uptime,level,tags</java_jvm>
-                <profileActive>dev</profileActive>
-            </properties>
-        </profile>
-        <profile>
-            <id>test</id>
-            <properties>
-                <java_jvm>-Xms1G -Xmx1G -server -Xss256K -Dspring.profiles.active=test -XX:+DisableExplicitGC -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/export/Logs/ekko-pay-mall-boot -Xlog:gc*:file=/export/Logs/ekko-pay-mall-boot/gc-ekko-pay-mall-boot.log:time,uptime,level,tags</java_jvm>
-                <profileActive>test</profileActive>
-            </properties>
-        </profile>
-        <profile>
-            <id>prod</id>
-            <properties>
-                <java_jvm>-Xms6G -Xmx6G -server -Xss256K -Dspring.profiles.active=release -XX:+DisableExplicitGC -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/export/Logs/ekko-pay-mall-app -Xlog:gc*:file=/export/Logs/ekko-pay-mall-boot/gc-ekko-pay-mall-boot.log:time,uptime,level,tags</java_jvm>
-                <profileActive>prod</profileActive>
-            </properties>
-        </profile>
-    </profiles>
-
 </project>

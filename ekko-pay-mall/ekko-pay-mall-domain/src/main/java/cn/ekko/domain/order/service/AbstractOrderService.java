@@ -79,21 +79,47 @@ public abstract class AbstractOrderService implements IOrderService {
     }
 
     private PayOrderEntity createPayOrder(String userId, OrderEntity orderEntity) throws AlipayApiException {
-        BigDecimal payAmount = preparePayAmount(userId, orderEntity);
+        try {
+            BigDecimal payAmount = preparePayAmount(userId, orderEntity);
 
-        PayOrderEntity payOrderEntity = this.doPrepayOrder(
-                userId,
-                orderEntity.getProductId(),
-                orderEntity.getProductName(),
-                orderEntity.getOrderId(),
-                payAmount
-        );
-        payOrderEntity.setMarketType(orderEntity.getMarketType());
-        payOrderEntity.setActivityId(orderEntity.getActivityId());
-        payOrderEntity.setTeamId(orderEntity.getTeamId());
-        payOrderEntity.setMarketDeductionAmount(orderEntity.getMarketDeductionAmount());
-        payOrderEntity.setPayAmount(payAmount);
-        return payOrderEntity;
+            PayOrderEntity payOrderEntity = this.doPrepayOrder(
+                    userId,
+                    orderEntity.getProductId(),
+                    orderEntity.getProductName(),
+                    orderEntity.getOrderId(),
+                    payAmount
+            );
+            payOrderEntity.setMarketType(orderEntity.getMarketType());
+            payOrderEntity.setActivityId(orderEntity.getActivityId());
+            payOrderEntity.setTeamId(orderEntity.getTeamId());
+            payOrderEntity.setMarketDeductionAmount(orderEntity.getMarketDeductionAmount());
+            payOrderEntity.setPayAmount(payAmount);
+            return payOrderEntity;
+        } catch (AppException e) {
+            closeRejectedGroupBuyOrder(userId, orderEntity, e);
+            throw e;
+        }
+    }
+
+    /**
+     * 拼团服务明确返回业务拒绝时，远端没有成功锁单，本地 CREATE 订单不能继续等待重试。
+     * 网络异常和响应不确定场景不在这里关单，保留相同订单号供幂等重试或人工补偿。
+     */
+    private void closeRejectedGroupBuyOrder(String userId, OrderEntity orderEntity, AppException exception) {
+        if (!MarketTypeVO.GROUP_BUY_MARKET.equals(orderEntity.getMarketType())
+                || !ResponseCode.GROUP_BUY_BUSINESS_ERROR.getCode().equals(exception.getCode())
+                || !OrderStatusVO.CREATE.equals(orderEntity.getOrderStatus())) {
+            return;
+        }
+
+        int updateCount = repository.refundOrder(userId, orderEntity.getOrderId(), OrderStatusVO.CREATE);
+        if (1 == updateCount) {
+            log.info("拼团锁单被业务拒绝，本地CREATE订单已关闭 userId:{} orderId:{}",
+                    userId, orderEntity.getOrderId());
+        } else {
+            log.warn("拼团锁单被业务拒绝，但本地CREATE订单关闭影响行数异常 userId:{} orderId:{} updateCount:{}",
+                    userId, orderEntity.getOrderId(), updateCount);
+        }
     }
 
     private BigDecimal preparePayAmount(String userId, OrderEntity orderEntity) {

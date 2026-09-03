@@ -50,6 +50,12 @@ public class OrderRepository implements IOrderRepository {
         PayOrder orderReq = new PayOrder();
         orderReq.setUserId(shopCartEntity.getUserId());
         orderReq.setProductId(shopCartEntity.getProductId());
+        MarketTypeVO marketType = null == shopCartEntity.getMarketType()
+                ? MarketTypeVO.NO_MARKET
+                : shopCartEntity.getMarketType();
+        orderReq.setMarketType(marketType.getCode());
+        orderReq.setActivityId(shopCartEntity.getActivityId());
+        orderReq.setTeamId(shopCartEntity.getTeamId());
         // 2. 查询到订单
         PayOrder order = orderDao.queryUnPayOrder(orderReq);
         if (null == order) return null;

@@ -37,6 +37,14 @@
 **/application-prod.yml
 !**/application-*.example.yml
 **/secrets/
+/deploy/env/*.env
+!/deploy/env/*.env.example
+/deploy/production/.env
+/deploy/production/*.env
+/deploy/production/artifacts/
+/deploy/production/web/
+/deploy/production/secrets/
+/deploy/production/certbot/
 
 # Frontend dependencies and local build output
 **/node_modules/
@@ -45,6 +53,7 @@
 **/.next/
 
 # Temporary files
+/tmp/
 **/*.swp
 **/*.swo
 **/*~

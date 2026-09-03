@@ -1,5 +1,6 @@
 package cn.ekko.infrastructure.gateway.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 /**
@@ -27,8 +28,9 @@ public class WeixinQrCodeRequestDTO {
         @Builder
         @AllArgsConstructor
         @NoArgsConstructor
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         public static class Scene {
-            int scene_id;
+            Integer scene_id;
             String scene_str;
         }
     }

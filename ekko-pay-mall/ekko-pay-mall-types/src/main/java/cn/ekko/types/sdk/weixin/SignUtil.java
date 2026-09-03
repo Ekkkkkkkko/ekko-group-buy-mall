@@ -8,18 +8,21 @@ import java.util.Arrays;
  * @author zhoumin
  */
 public class SignUtil {
-    private static String token = "b8b6";
+
+    private SignUtil() {
+    }
 
     /**
      * 校验签名
+     * @param token 微信回调令牌，由部署环境提供
      * @param signature 签名
      * @param timestamp 时间戳
      * @param nonce 随机数
      * @return 布尔值
      */
-    public static boolean checkSignature(String signature,String timestamp,String nonce){
+    public static boolean checkSignature(String token, String signature, String timestamp, String nonce){
         String checktext = null;
-        if (null != signature) {
+        if (null != token && !token.isBlank() && null != signature) {
             //对ToKen,timestamp,nonce 按字典排序
             String[] paramArr = new String[]{token,timestamp,nonce};
             Arrays.sort(paramArr);

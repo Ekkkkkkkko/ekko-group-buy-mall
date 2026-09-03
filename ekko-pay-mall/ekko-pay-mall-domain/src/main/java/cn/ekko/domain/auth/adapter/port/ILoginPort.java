@@ -10,6 +10,8 @@ public interface ILoginPort {
 
     String createQrCodeTicket() throws IOException;
 
+    String createQrCodeTicket(String sceneStr) throws IOException;
+
     void sendLoginTempleteMessage(String openid) throws IOException;
 
 }

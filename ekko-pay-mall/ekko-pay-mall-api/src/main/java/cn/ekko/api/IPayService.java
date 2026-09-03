@@ -10,7 +10,7 @@ import cn.ekko.api.response.Response;
 
 public interface IPayService {
 
-    Response<String> createPayOrder(CreatePayRequestDTO createPayRequestDTO);
+    Response<String> createPayOrder(CreatePayRequestDTO createPayRequestDTO, String authorization);
 
     Response<QueryOrderListResponseDTO> queryUserOrderList(
             QueryOrderListRequestDTO requestDTO,

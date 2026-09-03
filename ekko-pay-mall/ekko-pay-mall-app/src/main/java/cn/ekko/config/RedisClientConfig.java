@@ -13,10 +13,12 @@ import org.redisson.client.protocol.Decoder;
 import org.redisson.client.protocol.Encoder;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 
@@ -33,9 +35,8 @@ public class RedisClientConfig {
         // 根据需要可以设定编解码器；https://github.com/redisson/redisson/wiki/4.-%E6%95%B0%E6%8D%AE%E5%BA%8F%E5%88%97%E5%8C%96
         config.setCodec(JsonJacksonCodec.INSTANCE);
 
-        config.useSingleServer()
+        SingleServerConfig singleServerConfig = config.useSingleServer()
                 .setAddress("redis://" + properties.getHost() + ":" + properties.getPort())
-//                .setPassword(properties.getPassword())
                 .setConnectionPoolSize(properties.getPoolSize())
                 .setConnectionMinimumIdleSize(properties.getMinIdleSize())
                 .setIdleConnectionTimeout(properties.getIdleTimeout())
@@ -45,6 +46,10 @@ public class RedisClientConfig {
                 .setPingConnectionInterval(properties.getPingInterval())
                 .setKeepAlive(properties.isKeepAlive())
         ;
+
+        if (StringUtils.hasText(properties.getPassword())) {
+            singleServerConfig.setPassword(properties.getPassword());
+        }
 
         return Redisson.create(config);
     }
@@ -81,4 +86,3 @@ public class RedisClientConfig {
     }
 
 }
-

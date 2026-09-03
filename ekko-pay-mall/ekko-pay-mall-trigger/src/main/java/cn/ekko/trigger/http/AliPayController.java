@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -53,11 +54,13 @@ public class AliPayController implements IPayService {
      * http://localhost:8091/api/v1/alipay/create_pay_order?userId=1001&productId=100001
      */
     @RequestMapping(value = "create_pay_order", method = RequestMethod.POST)
-    public Response<String> createPayOrder(@RequestBody CreatePayRequestDTO createPayRequestDTO) {
+    public Response<String> createPayOrder(
+            @RequestBody CreatePayRequestDTO createPayRequestDTO,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
             validateCreatePayRequest(createPayRequestDTO);
 
-            String userId = createPayRequestDTO.getUserId();
+            String userId = resolveAuthenticatedUserId(authorization, createPayRequestDTO.getUserId());
             String productId = createPayRequestDTO.getProductId();
             MarketTypeVO marketType = MarketTypeVO.valueOf(createPayRequestDTO.getMarketType());
 
@@ -285,11 +288,14 @@ public class AliPayController implements IPayService {
         }
     }
 
-    private Date parsePayTime(String gmtPayment) throws ParseException {
+    Date parsePayTime(String gmtPayment) throws ParseException {
         if (null == gmtPayment || gmtPayment.isBlank()) {
             throw new ParseException("支付宝支付时间gmt_payment为空", 0);
         }
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        // 支付宝回调时间采用中国标准时间。容器默认时区可能为 UTC，若依赖 JVM
+        // 默认时区会把同一时刻向后偏移 8 小时，导致拼团有效期校验误判过期。
+        dateFormat.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
         dateFormat.setLenient(false);
         return dateFormat.parse(gmtPayment);
     }

@@ -2,14 +2,39 @@ spring:
   config:
     name: ekko-group-buy-market-app
   profiles:
-    active: dev
+    # 不提供默认值，避免生产环境忘记配置时静默回退 dev。
+    active: ${SPRING_PROFILES_ACTIVE}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: GroupBuyMarket_HikariCP
+      minimum-idle: ${MARKET_DB_MINIMUM_IDLE:3}
+      maximum-pool-size: ${MARKET_DB_MAXIMUM_POOL_SIZE:12}
+      idle-timeout: ${MARKET_DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${MARKET_DB_MAX_LIFETIME_MS:1500000}
+      keepalive-time: ${MARKET_DB_KEEPALIVE_TIME_MS:300000}
+      connection-timeout: ${MARKET_DB_CONNECTION_TIMEOUT_MS:5000}
+      validation-timeout: ${MARKET_DB_VALIDATION_TIMEOUT_MS:3000}
   rabbitmq:
-    # 本地连接信息由各环境 profile 或环境变量提供；以下配置保证发布成功必须收到 Broker ACK。
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
+    virtual-host: ${SPRING_RABBITMQ_VIRTUAL_HOST:/}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
       mandatory: true
       delivery-mode: persistent
+    listener:
+      simple:
+        concurrency: ${RABBITMQ_LISTENER_CONCURRENCY:2}
+        max-concurrency: ${RABBITMQ_LISTENER_MAX_CONCURRENCY:4}
+        prefetch: ${RABBITMQ_LISTENER_PREFETCH:1}
     config:
       producer:
         exchange: ekko_group_buy_market_exchange
@@ -22,9 +47,77 @@ spring:
           # 这是拼团内部恢复锁单量队列，不能与商城退款队列共用。
           queue: ekko_group_buy_market_queue_2_topic_team_refund
 
-# HTTP 回调白名单必须由部署环境显式提供；多个地址使用英文逗号分隔
+# 当前仓库中的 application-dev/test/prod.yml 是本机文件，不会打入 JAR。
+# 生产环境必须通过服务器 EnvironmentFile 提供下列连接信息和共享令牌。
+server:
+  port: ${SERVER_PORT:8091}
+  tomcat:
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:1000}
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:100}
+    connection-timeout: ${SERVER_TOMCAT_CONNECTION_TIMEOUT:10s}
+    max-keep-alive-requests: ${SERVER_TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:100}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:10}
+
+# 2C4G 初始值：当前试算会为一次请求提交两个并行查询任务。
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: ${BUSINESS_EXECUTOR_CORE_POOL_SIZE:4}
+        max-pool-size: ${BUSINESS_EXECUTOR_MAX_POOL_SIZE:8}
+        keep-alive-time: ${BUSINESS_EXECUTOR_KEEP_ALIVE_SECONDS:60}
+        block-queue-size: ${BUSINESS_EXECUTOR_QUEUE_CAPACITY:200}
+        policy: ${BUSINESS_EXECUTOR_REJECTION_POLICY:CallerRunsPolicy}
+
+mybatis-plus:
+  mapper-locations: classpath:/mybatis/mapper/*.xml
+  config-location: classpath:/mybatis/config/mybatis-config.xml
+
+redis:
+  sdk:
+    config:
+      host: ${MARKET_REDIS_HOST}
+      port: ${MARKET_REDIS_PORT:6379}
+      password: ${MARKET_REDIS_PASSWORD:}
+      pool-size: ${MARKET_REDIS_POOL_SIZE:8}
+      min-idle-size: ${MARKET_REDIS_MIN_IDLE_SIZE:2}
+      idle-timeout: ${MARKET_REDIS_IDLE_TIMEOUT_MS:30000}
+      connect-timeout: ${MARKET_REDIS_CONNECT_TIMEOUT_MS:5000}
+      retry-attempts: ${MARKET_REDIS_RETRY_ATTEMPTS:3}
+      retry-interval: ${MARKET_REDIS_RETRY_INTERVAL_MS:1000}
+      ping-interval: ${MARKET_REDIS_PING_INTERVAL_MS:60000}
+      keep-alive: true
+
+ekko:
+  dynamic:
+    config:
+      system: ${MARKET_DCC_SYSTEM:ekko-group-buy-market}
+      register:
+        host: ${MARKET_DCC_REDIS_HOST}
+        port: ${MARKET_DCC_REDIS_PORT:6379}
+        password: ${MARKET_DCC_REDIS_PASSWORD:}
+        pool-size: ${MARKET_DCC_REDIS_POOL_SIZE:4}
+        min-idle-size: ${MARKET_DCC_REDIS_MIN_IDLE_SIZE:1}
+        idle-timeout: ${MARKET_DCC_REDIS_IDLE_TIMEOUT_MS:30000}
+        connect-timeout: ${MARKET_DCC_REDIS_CONNECT_TIMEOUT_MS:5000}
+
 group-buy-market:
-  notify-url-whitelist: ${GROUP_BUY_NOTIFY_URL_WHITELIST:}
-  # HTTP 成团回调共享令牌；必须与商城配置一致
-  notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}
+  notify-url-whitelist: ${GROUP_BUY_NOTIFY_URL_WHITELIST}
+  notify-token: ${GROUP_BUY_NOTIFY_TOKEN}
   notify-job-cron: ${GROUP_BUY_NOTIFY_JOB_CRON:0/10 * * * * ?}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:info}
+  config: classpath:logback-spring.xml

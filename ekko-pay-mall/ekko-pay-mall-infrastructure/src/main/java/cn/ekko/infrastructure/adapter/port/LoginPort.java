@@ -14,10 +14,14 @@ import retrofit2.Call;
 import jakarta.annotation.Resource;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class LoginPort implements ILoginPort {
+
+    private static final int QR_CODE_EXPIRE_SECONDS = 300;
 
     @Value("${weixin.config.app-id}")
     private String appid;
@@ -25,52 +29,52 @@ public class LoginPort implements ILoginPort {
     private String appSecret;
     @Value("${weixin.config.template_id}")
     private String template_id;
-    @Resource
+    @Resource(name = "weixinAccessToken")
     private Cache<String, String> weixinAccessToken;
     @Resource
     private IWeixinApiService weixinApiService;
 
     @Override
     public String createQrCodeTicket() throws IOException {
-        // 1. 获取 accessToken 【实际业务场景，按需处理下异常】
-        String accessToken = weixinAccessToken.getIfPresent(appid);
-        if (null == accessToken){
-            Call<WeixinTokenResponseDTO> call = weixinApiService.getToken("client_credential", appid, appSecret);
-            WeixinTokenResponseDTO weixinTokenResponseDTO = call.execute().body();
-            assert weixinTokenResponseDTO != null;
-            accessToken = weixinTokenResponseDTO.getAccess_token();
-            weixinAccessToken.put(appid, accessToken);
-        }
+        String sceneStr = UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .toUpperCase(Locale.ROOT);
+        return createQrCodeTicket(sceneStr);
+    }
+
+    @Override
+    public String createQrCodeTicket(String sceneStr) throws IOException {
+        // 1. 获取 accessToken
+        String accessToken = getAccessToken();
 
         // 2. 生成 ticket
         WeixinQrCodeRequestDTO request = WeixinQrCodeRequestDTO.builder()
-                .expire_seconds(2592000) // 过期时间单位为秒 2592000 = 30天
-                .action_name(WeixinQrCodeRequestDTO.ActionNameTypeVO.QR_SCENE.getCode())
+                .expire_seconds(QR_CODE_EXPIRE_SECONDS)
+                .action_name(WeixinQrCodeRequestDTO.ActionNameTypeVO.QR_STR_SCENE.getCode())
                 .action_info(WeixinQrCodeRequestDTO.ActionInfo.builder()
                         .scene(WeixinQrCodeRequestDTO.ActionInfo.Scene.builder()
-                                .scene_id(100601) // 场景ID
-                                // .scene_str("test") 配合 ActionNameTypeVO.QR_STR_SCENE
+                                .scene_str(sceneStr)
                                 .build())
                         .build())
                 .build();
 
         Call<WeixinQrCodeResponseDTO> qrCodeCall = weixinApiService.createQrCode(accessToken, request);
-        WeixinQrCodeResponseDTO weixinQrCodeResponseDTO = qrCodeCall.execute().body();
-        assert weixinQrCodeResponseDTO != null;
+        retrofit2.Response<WeixinQrCodeResponseDTO> response = qrCodeCall.execute();
+        WeixinQrCodeResponseDTO weixinQrCodeResponseDTO = response.body();
+        if (!response.isSuccessful()
+                || null == weixinQrCodeResponseDTO
+                || null == weixinQrCodeResponseDTO.getTicket()
+                || weixinQrCodeResponseDTO.getTicket().isBlank()) {
+            throw new IOException("生成微信二维码 ticket 失败");
+        }
         return weixinQrCodeResponseDTO.getTicket();
     }
 
     @Override
     public void sendLoginTempleteMessage(String openid) throws IOException {
-        // 1. 获取 accessToken 【实际业务场景，按需处理下异常】
-        String accessToken = weixinAccessToken.getIfPresent(appid);
-        if (null == accessToken){
-            Call<WeixinTokenResponseDTO> call = weixinApiService.getToken("client_credential", appid, appSecret);
-            WeixinTokenResponseDTO weixinTokenResponseDTO = call.execute().body();
-            assert weixinTokenResponseDTO != null;
-            accessToken = weixinTokenResponseDTO.getAccess_token();
-            weixinAccessToken.put(appid, accessToken);
-        }
+        // 1. 获取 accessToken
+        String accessToken = getAccessToken();
 
         // 2. 发送模板消息
         Map<String, Map<String, String>> data = new HashMap<>();
@@ -81,7 +85,30 @@ public class LoginPort implements ILoginPort {
         templateMessageDTO.setData(data);
 
         Call<Void> call = weixinApiService.sendMessage(accessToken, templateMessageDTO);
-        call.execute();
+        retrofit2.Response<Void> response = call.execute();
+        if (!response.isSuccessful()) {
+            throw new IOException("发送微信登录成功模板消息失败");
+        }
+    }
+
+    private String getAccessToken() throws IOException {
+        String accessToken = weixinAccessToken.getIfPresent(appid);
+        if (null != accessToken && !accessToken.isBlank()) {
+            return accessToken;
+        }
+
+        Call<WeixinTokenResponseDTO> call = weixinApiService.getToken("client_credential", appid, appSecret);
+        retrofit2.Response<WeixinTokenResponseDTO> response = call.execute();
+        WeixinTokenResponseDTO responseBody = response.body();
+        if (!response.isSuccessful()
+                || null == responseBody
+                || null == responseBody.getAccess_token()
+                || responseBody.getAccess_token().isBlank()) {
+            throw new IOException("获取微信 accessToken 失败");
+        }
+        accessToken = responseBody.getAccess_token();
+        weixinAccessToken.put(appid, accessToken);
+        return accessToken;
     }
 
 }

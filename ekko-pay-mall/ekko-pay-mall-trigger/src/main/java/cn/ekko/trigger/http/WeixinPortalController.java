@@ -4,7 +4,6 @@ import cn.ekko.domain.auth.service.ILoginService;
 import cn.ekko.types.sdk.weixin.MessageTextEntity;
 import cn.ekko.types.sdk.weixin.SignatureUtil;
 import cn.ekko.types.sdk.weixin.XmlUtil;
-import com.google.common.cache.Cache;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,32 +23,30 @@ public class WeixinPortalController {
 
     @Value("${weixin.config.originalid}")
     private String originalid;
-    @Resource
-    private Cache<String, String> openidToken;
+    @Value("${weixin.config.token:}")
+    private String weixinToken;
     @Resource
     private ILoginService loginService;
 
-    /**
-     * 验签，硬编码 token b8b6 - 按需修改
-     */
+    /** 微信公众号服务器配置验签。 */
     @GetMapping(value = "receive", produces = "text/plain;charset=utf-8")
     public String validate(@RequestParam(value = "signature", required = false) String signature,
                            @RequestParam(value = "timestamp", required = false) String timestamp,
                            @RequestParam(value = "nonce", required = false) String nonce,
                            @RequestParam(value = "echostr", required = false) String echostr) {
         try {
-            log.info("微信公众号验签信息开始 [{}, {}, {}, {}]", signature, timestamp, nonce, echostr);
-            if (StringUtils.isAnyBlank(signature, timestamp, nonce, echostr)) {
+            log.info("微信公众号验签开始");
+            if (StringUtils.isAnyBlank(weixinToken, signature, timestamp, nonce, echostr)) {
                 throw new IllegalArgumentException("请求参数非法，请核实!");
             }
-            boolean check = SignatureUtil.check("b8b6", signature, timestamp, nonce);
-            log.info("微信公众号验签信息完成 check：{}", check);
+            boolean check = SignatureUtil.check(weixinToken, signature, timestamp, nonce);
+            log.info("微信公众号验签完成 check:{}", check);
             if (!check) {
                 return null;
             }
             return echostr;
         } catch (Exception e) {
-            log.error("微信公众号验签信息失败 [{}, {}, {}, {}]", signature, timestamp, nonce, echostr, e);
+            log.error("微信公众号验签失败", e);
             return null;
         }
     }
@@ -66,21 +63,32 @@ public class WeixinPortalController {
                        @RequestParam(name = "encrypt_type", required = false) String encType,
                        @RequestParam(name = "msg_signature", required = false) String msgSignature) {
         try {
-            log.info("接收微信公众号信息请求{}开始 {}", openid, requestBody);
+            if (StringUtils.isBlank(weixinToken)) {
+                log.error("微信公众号回调 token 未配置");
+                return "";
+            }
+            if (!SignatureUtil.check(weixinToken, signature, timestamp, nonce)) {
+                log.warn("拒绝未通过签名校验的微信公众号回调");
+                return "";
+            }
             // 消息转换
             MessageTextEntity message = XmlUtil.xmlToBean(requestBody, MessageTextEntity.class);
 
-            // 扫码登录【消息类型和事件】
-            if ("event".equals(message.getMsgType()) && "SCAN".equals(message.getEvent())) {
+            // 已关注用户扫码为 SCAN；未关注用户扫码关注后为 subscribe，两者都会携带 Ticket。
+            boolean qrCodeLoginEvent = "event".equals(message.getMsgType())
+                    && ("SCAN".equals(message.getEvent()) || "subscribe".equals(message.getEvent()))
+                    && StringUtils.isNotBlank(message.getTicket());
+            if (qrCodeLoginEvent) {
                 // 保存登录状态
                 loginService.saveLoginState(message.getTicket(), openid);
+                log.info("微信公众号扫码登录状态保存成功 event:{}", message.getEvent());
                 return buildMessageTextEntity(openid, "登录成功");
             }
 
-            log.info("接收微信公众号信息请求{}完成 {}", openid, requestBody);
+            log.info("微信公众号回调不是扫码登录事件 event:{}", message.getEvent());
             return buildMessageTextEntity(openid, "测试本案例，需要请扫码登录！");
         } catch (Exception e) {
-            log.error("接收微信公众号信息请求{}失败 {}", openid, requestBody, e);
+            log.error("处理微信公众号回调失败", e);
             return "";
         }
     }

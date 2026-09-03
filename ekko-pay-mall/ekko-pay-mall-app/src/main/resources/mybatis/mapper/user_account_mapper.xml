@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.ekko.infrastructure.dao.IUserAccountDao">
+
+    <resultMap id="dataMap" type="cn.ekko.infrastructure.dao.po.UserAccount">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="password_hash" property="passwordHash"/>
+        <result column="status" property="status"/>
+        <result column="token_version" property="tokenVersion"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="queryByUsername" parameterType="java.lang.String" resultMap="dataMap">
+        select id, user_id, username, password_hash, status, token_version, create_time, update_time
+        from mall_user
+        where username = #{username}
+        limit 1
+    </select>
+
+    <select id="queryByUserId" parameterType="java.lang.String" resultMap="dataMap">
+        select id, user_id, username, password_hash, status, token_version, create_time, update_time
+        from mall_user
+        where user_id = #{userId}
+        limit 1
+    </select>
+
+    <insert id="insert" parameterType="cn.ekko.infrastructure.dao.po.UserAccount">
+        insert into mall_user(user_id, username, password_hash, status, token_version, create_time, update_time)
+        values(#{userId}, #{username}, #{passwordHash}, #{status}, #{tokenVersion}, now(), now())
+    </insert>
+
+    <update id="updatePassword">
+        update mall_user
+        set password_hash = #{passwordHash},
+            token_version = token_version + 1,
+            update_time = now()
+        where user_id = #{userId}
+          and token_version = #{expectedTokenVersion}
+          and status = 1
+    </update>
+
+    <update id="revokeTokens">
+        update mall_user
+        set token_version = token_version + 1,
+            update_time = now()
+        where user_id = #{userId}
+          and token_version = #{expectedTokenVersion}
+          and status = 1
+    </update>
+
+</mapper>

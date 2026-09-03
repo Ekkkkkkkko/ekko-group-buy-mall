@@ -2,16 +2,34 @@ spring:
   config:
     name: ekko-pay-mall
   profiles:
-    active: dev
+    # 不提供默认值，避免生产环境忘记配置时静默回退 dev。
+    active: ${SPRING_PROFILES_ACTIVE}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.zaxxer.hikari.HikariDataSource
+    hikari:
+      pool-name: PayMall_HikariCP
+      minimum-idle: ${MALL_DB_MINIMUM_IDLE:3}
+      maximum-pool-size: ${MALL_DB_MAXIMUM_POOL_SIZE:12}
+      idle-timeout: ${MALL_DB_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${MALL_DB_MAX_LIFETIME_MS:1500000}
+      keepalive-time: ${MALL_DB_KEEPALIVE_TIME_MS:300000}
+      connection-timeout: ${MALL_DB_CONNECTION_TIMEOUT_MS:5000}
+      validation-timeout: ${MALL_DB_VALIDATION_TIMEOUT_MS:3000}
   rabbitmq:
-    host: ${RABBITMQ_HOST:127.0.0.1}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    virtual-host: ${RABBITMQ_VIRTUAL_HOST:/}
+    host: ${SPRING_RABBITMQ_HOST}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME}
+    password: ${SPRING_RABBITMQ_PASSWORD}
+    virtual-host: ${SPRING_RABBITMQ_VIRTUAL_HOST:/}
     listener:
       simple:
         acknowledge-mode: auto
+        concurrency: ${RABBITMQ_LISTENER_CONCURRENCY:2}
+        max-concurrency: ${RABBITMQ_LISTENER_MAX_CONCURRENCY:4}
         prefetch: ${RABBITMQ_REFUND_PREFETCH:1}
         default-requeue-rejected: false
         retry:
@@ -34,21 +52,78 @@ spring:
 
 server:
   port: ${SERVER_PORT:8092}
+  tomcat:
+    max-connections: ${SERVER_TOMCAT_MAX_CONNECTIONS:1000}
+    accept-count: ${SERVER_TOMCAT_ACCEPT_COUNT:100}
+    connection-timeout: ${SERVER_TOMCAT_CONNECTION_TIMEOUT:10s}
+    max-keep-alive-requests: ${SERVER_TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+    threads:
+      max: ${SERVER_TOMCAT_THREADS_MAX:100}
+      min-spare: ${SERVER_TOMCAT_THREADS_MIN_SPARE:10}
+
+# 商城当前业务线程池没有高并发计算任务，保持小池和有界队列即可。
+thread:
+  pool:
+    executor:
+      config:
+        core-pool-size: ${BUSINESS_EXECUTOR_CORE_POOL_SIZE:2}
+        max-pool-size: ${BUSINESS_EXECUTOR_MAX_POOL_SIZE:4}
+        keep-alive-time: ${BUSINESS_EXECUTOR_KEEP_ALIVE_SECONDS:60}
+        block-queue-size: ${BUSINESS_EXECUTOR_QUEUE_CAPACITY:100}
+        policy: ${BUSINESS_EXECUTOR_REJECTION_POLICY:CallerRunsPolicy}
 
 auth:
-  # 必须由部署环境提供；为空时不签发也不接受登录令牌
-  jwt-secret: ${AUTH_JWT_SECRET:}
+  jwt-secret: ${AUTH_JWT_SECRET}
 
-# 非敏感的拼团服务连接入口；各环境可使用环境变量覆盖
 group-buy-market:
-  api-url: ${GROUP_BUY_MARKET_API_URL:http://127.0.0.1:8091/}
+  api-url: ${GROUP_BUY_MARKET_API_URL}
   source: ${GROUP_BUY_MARKET_SOURCE:s01}
   channel: ${GROUP_BUY_MARKET_CHANNEL:c01}
   notify-type: ${GROUP_BUY_MARKET_NOTIFY_TYPE:HTTP}
-  notify-url: ${GROUP_BUY_MARKET_NOTIFY_URL:}
+  notify-url: ${GROUP_BUY_MARKET_NOTIFY_URL}
   notify-mq: ${GROUP_BUY_MARKET_NOTIFY_MQ:}
-  # HTTP 成团回调共享令牌；商城与拼团服务必须配置相同值，空值时商城默认拒绝回调
-  notify-token: ${GROUP_BUY_NOTIFY_TOKEN:}
+  notify-token: ${GROUP_BUY_NOTIFY_TOKEN}
 
 refund:
   compensation-cron: ${REFUND_COMPENSATION_CRON:0/30 * * * * ?}
+
+redis:
+  sdk:
+    config:
+      host: ${MALL_REDIS_HOST}
+      port: ${MALL_REDIS_PORT:6379}
+      password: ${MALL_REDIS_PASSWORD:}
+      pool-size: ${MALL_REDIS_POOL_SIZE:8}
+      min-idle-size: ${MALL_REDIS_MIN_IDLE_SIZE:2}
+      idle-timeout: ${MALL_REDIS_IDLE_TIMEOUT_MS:30000}
+      connect-timeout: ${MALL_REDIS_CONNECT_TIMEOUT_MS:5000}
+      retry-attempts: ${MALL_REDIS_RETRY_ATTEMPTS:3}
+      retry-interval: ${MALL_REDIS_RETRY_INTERVAL_MS:1000}
+      ping-interval: ${MALL_REDIS_PING_INTERVAL_MS:60000}
+      keep-alive: true
+
+alipay:
+  enabled: ${ALIPAY_ENABLED:true}
+  app_id: ${ALIPAY_APP_ID}
+  merchant_private_key: ${ALIPAY_MERCHANT_PRIVATE_KEY}
+  alipay_public_key: ${ALIPAY_PUBLIC_KEY}
+  notify_url: ${ALIPAY_NOTIFY_URL}
+  return_url: ${ALIPAY_RETURN_URL}
+  gatewayUrl: ${ALIPAY_GATEWAY_URL:https://openapi.alipay.com/gateway.do}
+
+weixin:
+  config:
+    token: ${WEIXIN_CALLBACK_TOKEN}
+    originalid: ${WEIXIN_ORIGINAL_ID}
+    app-id: ${WEIXIN_APP_ID}
+    app-secret: ${WEIXIN_APP_SECRET}
+    template_id: ${WEIXIN_TEMPLATE_ID}
+
+mybatis-plus:
+  mapper-locations: classpath:/mybatis/mapper/*.xml
+  config-location: classpath:/mybatis/config/mybatis-config.xml
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:info}
+  config: classpath:logback-spring.xml

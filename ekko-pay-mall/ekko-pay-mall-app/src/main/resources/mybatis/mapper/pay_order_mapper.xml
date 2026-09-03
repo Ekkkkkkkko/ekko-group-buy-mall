@@ -112,6 +112,13 @@
         from pay_order
         where user_id = #{userId}
           and product_id = #{productId}
+          and market_type = #{marketType}
+        <if test="activityId != null">
+          and activity_id = #{activityId}
+        </if>
+        <if test="teamId != null and teamId != ''">
+          and team_id = #{teamId}
+        </if>
           and status in ('CREATE', 'PAY_WAIT')
         order by id desc
         limit 1
