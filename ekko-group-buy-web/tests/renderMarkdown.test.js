@@ -25,3 +25,14 @@ test('opens safe links in a separate tab without opener access', () => {
   assert.match(html, /target="_blank"/)
   assert.match(html, /rel="noopener noreferrer"/)
 })
+
+test('removes inline source markers because sources are rendered as separate cards', () => {
+  const html = renderMarkdown([
+    '1. 登录管理界面 [资料1]。',
+    '2. 打开无线设置[资料 12]，保存配置 [资料1]。',
+  ].join('\n'))
+
+  assert.doesNotMatch(html, /资料\s*\d+/)
+  assert.match(html, /登录管理界面。/)
+  assert.match(html, /打开无线设置，保存配置。/)
+})

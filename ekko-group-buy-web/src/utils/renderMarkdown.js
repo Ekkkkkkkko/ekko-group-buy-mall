@@ -20,5 +20,6 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
 }
 
 export function renderMarkdown(content) {
-  return markdown.render(String(content || ''))
+  const normalized = String(content || '').replace(/[ \t]*\[资料\s*\d+\][ \t]*/g, '')
+  return markdown.render(normalized)
 }
