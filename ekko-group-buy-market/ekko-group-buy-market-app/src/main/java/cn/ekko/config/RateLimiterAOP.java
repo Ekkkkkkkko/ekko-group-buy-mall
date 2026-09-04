@@ -19,7 +19,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 基于注解的接口限流切面。
@@ -89,6 +91,14 @@ public class RateLimiterAOP {
     }
 
     public String getAttrValue(String attr, Object[] args) {
+        String[] attributes = StringUtils.split(attr, ',');
+        if (null != attributes && attributes.length > 1) {
+            return Arrays.stream(attributes)
+                    .map(String::trim)
+                    .map(attribute -> getAttrValue(attribute, args))
+                    .collect(Collectors.joining("|"));
+        }
+
         if (args == null || args.length == 0) {
             return "all";
         }

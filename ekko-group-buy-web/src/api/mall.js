@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env?.VITE_PAY_MALL_API_BASE || '/mall-api'
 const SUCCESS_CODE = '0000'
+const PRODUCT_MARKET_PREVIEW_LIMIT = 8
 
 export class MallApiError extends Error {
   constructor(message, code = 'NETWORK_ERROR') {
@@ -49,8 +50,27 @@ function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-export function queryProducts() {
-  return request('/api/v1/products')
+export async function queryProducts(userId) {
+  const products = await request('/api/v1/products')
+  if (!userId || !Array.isArray(products) || !products.length) return products
+
+  const previewProducts = products.slice(0, PRODUCT_MARKET_PREVIEW_LIMIT)
+  const enrichedProducts = await Promise.all(
+    previewProducts.map(async product => {
+      const productId = String(product?.productId || '').trim()
+      if (!productId) return product
+
+      try {
+        const detail = await queryProductDetail(productId, userId)
+        return detail ? { ...product, ...detail } : product
+      } catch {
+        // 单个商品的营销试算失败时保留基础商品，首页仍可展示日常价。
+        return product
+      }
+    }),
+  )
+
+  return [...enrichedProducts, ...products.slice(PRODUCT_MARKET_PREVIEW_LIMIT)]
 }
 
 export function queryProductDetail(productId, userId) {

@@ -35,7 +35,7 @@ public class MarketIndexController implements IMarketIndexService {
     @Resource
     private IIndexGroupBuyMarketService indexGroupBuyMarketService;
 
-    @RateLimiterAccessInterceptor(key = "userId", fallbackMethod = "queryGroupBuyMarketConfigFallBack", permitsPerSecond = 1.0d, blacklistCount = 1)
+    @RateLimiterAccessInterceptor(key = "userId,goodsId", fallbackMethod = "queryGroupBuyMarketConfigFallBack", permitsPerSecond = 1.0d)
     @RequestMapping(value = "query_ekko_group_buy_market_config", method = RequestMethod.POST)
     @Override
     public Response<GoodsMarketResponseDTO> queryGroupBuyMarketConfig(@RequestBody GoodsMarketRequestDTO requestDTO) {

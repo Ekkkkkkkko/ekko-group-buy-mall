@@ -176,7 +176,7 @@ async function loadProducts() {
   productsLoading.value = true
   productsError.value = ''
   try {
-    const data = await queryProducts()
+    const data = await queryProducts(userId.value || guestId)
     if (!Array.isArray(data)) throw new Error('设备数据格式不正确')
     products.value = normalizeProducts(data)
     demoMode.value = false

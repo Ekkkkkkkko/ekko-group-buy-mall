@@ -109,9 +109,9 @@ function handleImageError(event) {
             </div>
             <div class="product-card-footer">
               <div class="price-lockup">
-                <small>{{ slot.product.groupBuyMarket ? '多人拼价' : '日常价' }}</small>
+                <small>{{ slot.product.groupBuyMarket ? '活动价' : '日常价' }}</small>
                 <strong><sup>¥</sup>{{ priceOf(slot.product) }}</strong>
-                <del v-if="slot.product.groupBuyMarket">¥{{ slot.product.basePrice }}</del>
+                <del v-if="slot.product.groupBuyMarket">日常价 ¥{{ slot.product.basePrice }}</del>
               </div>
               <span class="product-arrow" aria-hidden="true">
                 去拼购
