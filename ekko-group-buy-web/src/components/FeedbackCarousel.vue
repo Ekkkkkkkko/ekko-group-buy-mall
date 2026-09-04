@@ -42,7 +42,7 @@ function move(direction) {
         <blockquote :key="active">“{{ stories[active].quote }}”</blockquote>
       </Transition>
       <div class="feedback-meta">
-        <div>
+        <div class="feedback-context">
           <strong>{{ stories[active].name }}</strong>
           <span>{{ stories[active].role }} · {{ stories[active].detail }}</span>
         </div>

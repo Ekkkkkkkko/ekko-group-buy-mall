@@ -1056,8 +1056,8 @@ img {
 
 .section--feedback {
   display: grid;
-  grid-template-columns: 0.72fr 1.28fr;
-  gap: 72px;
+  grid-template-columns: minmax(280px, 0.58fr) minmax(0, 1.42fr);
+  gap: clamp(48px, 5vw, 80px);
   align-items: end;
   padding-top: 96px;
   padding-bottom: 88px;
@@ -1173,40 +1173,63 @@ img {
 
 .feedback-copy blockquote {
   min-height: 92px;
-  max-width: 760px;
+  width: 100%;
+  max-width: none;
   margin: 0;
+  padding-right: clamp(0px, 2vw, 28px);
   font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC',
     serif;
-  font-size: clamp(1.25rem, 1.65vw, 1.65rem);
+  font-size: clamp(1.25rem, 1.5vw, 1.58rem);
   font-weight: 400;
   letter-spacing: 0.015em;
   line-height: 1.48;
-  text-wrap: balance;
+  text-wrap: pretty;
 }
 
 .feedback-meta {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 30px;
+  gap: clamp(28px, 4vw, 64px);
   margin-top: 32px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
 }
 
-.feedback-meta > div:first-child {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+.feedback-context {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(112px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 60px);
 }
 
-.feedback-meta span {
+.feedback-context strong {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.feedback-context span {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.55;
+}
+
+.feedback-context span::before {
+  width: 30px;
+  height: 1px;
+  flex: 0 0 auto;
+  background: var(--line);
+  content: '';
 }
 
 .carousel-controls {
   display: flex;
+  flex: 0 0 auto;
   gap: 8px;
 }
 
@@ -1228,6 +1251,15 @@ img {
 .carousel-controls button:hover {
   color: #fff;
   background: var(--ink);
+}
+
+.carousel-controls button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.carousel-controls button:active {
+  transform: scale(0.96);
 }
 
 .quote-enter-active,
@@ -3062,6 +3094,20 @@ img {
   .feedback-meta {
     align-items: flex-start;
     flex-direction: column;
+    gap: 22px;
+  }
+
+  .feedback-context {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .feedback-context span {
+    display: block;
+  }
+
+  .feedback-context span::before {
+    display: none;
   }
 
   .cta-inner {
