@@ -293,7 +293,7 @@ onBeforeUnmount(stopPolling)
         <div class="document-card__heading">
           <span><UploadCloud :size="22" /></span>
           <div>
-            <small>NEW DOCUMENT</small>
+            <small>新增资料</small>
             <h2>上传文档</h2>
           </div>
         </div>
@@ -352,7 +352,7 @@ onBeforeUnmount(stopPolling)
         <div class="document-card__heading">
           <span><FileSearch :size="22" /></span>
           <div>
-            <small>DOCUMENT LOOKUP</small>
+            <small>资料检索</small>
             <h2>查询与删除</h2>
           </div>
         </div>
@@ -417,21 +417,22 @@ onBeforeUnmount(stopPolling)
 
 <style scoped>
 .document-admin {
-  min-height: 100vh;
-  padding: 22px clamp(20px, 5vw, 72px) 36px;
+  min-height: 100dvh;
+  padding: 0 0 36px;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 86% 2%, rgba(201, 242, 85, 0.2), transparent 24rem),
-    var(--cream);
+  background: #f7f7f8;
 }
 
 .document-admin__nav {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  max-width: 1180px;
-  min-height: 64px;
+  width: 100%;
+  min-height: 58px;
   margin: 0 auto;
+  padding: 0 clamp(18px, 3vw, 34px);
+  border-bottom: 1px solid #ececec;
+  background: rgba(255, 255, 255, 0.96);
 }
 
 .document-admin__back,
@@ -445,9 +446,18 @@ onBeforeUnmount(stopPolling)
   align-items: center;
   gap: 8px;
   width: fit-content;
-  color: var(--muted);
+  min-height: 36px;
+  padding: 0 11px;
+  border-radius: 8px;
+  color: #4b4b4b;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.document-admin__back:hover {
+  background: #f2f2f2;
+  transform: translateX(-2px);
 }
 
 .document-admin__brand {
@@ -458,17 +468,17 @@ onBeforeUnmount(stopPolling)
 
 .document-admin__brand span {
   margin-left: 8px;
-  color: #657052;
+  color: #6d6d6d;
   font-size: 13px;
   letter-spacing: 0.08em;
 }
 
 .document-admin__role {
   padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+  color: #696969;
+  background: #f7f7f8;
   font-size: 11px;
   font-weight: 700;
 }
@@ -486,20 +496,26 @@ onBeforeUnmount(stopPolling)
   gap: 6px;
   padding: 8px 11px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   color: #fff;
-  background: var(--ink);
+  background: #202123;
   cursor: pointer;
   font-size: 11px;
   font-weight: 750;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.document-admin__actions button:hover {
+  background: #343541;
+  transform: translateY(-1px);
 }
 
 .document-admin__hero {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  max-width: 1180px;
-  margin: 68px auto 34px;
+  width: min(1180px, calc(100% - 40px));
+  margin: 46px auto 30px;
 }
 
 .document-admin__hero p {
@@ -507,7 +523,7 @@ onBeforeUnmount(stopPolling)
   align-items: center;
   gap: 8px;
   margin: 0 0 14px;
-  color: #718326;
+  color: #666;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -515,16 +531,16 @@ onBeforeUnmount(stopPolling)
 
 .document-admin__hero h1 {
   margin: 0;
-  font-size: clamp(2.7rem, 6vw, 5.5rem);
-  letter-spacing: -0.07em;
-  line-height: 0.96;
+  font-size: clamp(2.35rem, 5vw, 4.1rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
 }
 
 .document-admin__hero > div:first-child > span {
   display: block;
   max-width: 560px;
   margin-top: 22px;
-  color: var(--muted);
+  color: #777;
   font-size: 15px;
   line-height: 1.7;
 }
@@ -538,9 +554,9 @@ onBeforeUnmount(stopPolling)
 
 .document-admin__flow span {
   padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid #dedede;
+  border-radius: 8px;
+  background: #fff;
   font-size: 10px;
   font-weight: 800;
 }
@@ -555,14 +571,14 @@ onBeforeUnmount(stopPolling)
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: 1180px;
+  width: min(1180px, calc(100% - 40px));
   min-height: 48px;
   margin: 0 auto 18px;
   padding: 11px 15px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  color: var(--muted);
-  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid #e1e1e1;
+  border-radius: 10px;
+  color: #686868;
+  background: #fff;
   font-size: 12px;
 }
 
@@ -570,16 +586,16 @@ onBeforeUnmount(stopPolling)
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   gap: 18px;
-  max-width: 1180px;
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto;
 }
 
 .document-card {
   padding: clamp(24px, 3vw, 38px);
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--soft-shadow);
+  border: 1px solid #e1e1e1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.045);
 }
 
 .document-card__heading {
@@ -595,16 +611,17 @@ onBeforeUnmount(stopPolling)
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  background: var(--lime);
+  border-radius: 11px;
+  color: #fff;
+  background: #202123;
 }
 
 .document-card__heading small,
 .document-result__top small {
-  color: #8d9088;
+  color: #888;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.08em;
 }
 
 .document-card__heading h2,
@@ -645,18 +662,19 @@ onBeforeUnmount(stopPolling)
   width: 100%;
   height: 48px;
   padding: 0 14px;
-  border: 1px solid var(--line);
+  border: 1px solid #dcdcdc;
   border-radius: 11px;
   outline: 0;
-  background: var(--cream);
+  background: #f7f7f8;
   font: inherit;
 }
 
 .document-form input:focus,
 .document-form select:focus,
 .document-lookup input:focus {
-  border-color: #8baa29;
-  box-shadow: 0 0 0 4px rgba(139, 170, 41, 0.1);
+  border-color: #8d8d8d;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(32, 33, 35, 0.07);
 }
 
 .document-strategy select {
@@ -674,7 +692,7 @@ onBeforeUnmount(stopPolling)
 
 .document-strategy p strong {
   margin-right: 5px;
-  color: #63781c;
+  color: #444;
   font-weight: 800;
 }
 
@@ -684,12 +702,18 @@ onBeforeUnmount(stopPolling)
   justify-content: center;
   min-height: 132px;
   padding: 18px;
-  border: 1px dashed rgba(22, 23, 19, 0.25);
+  border: 1px dashed #c7c7c7;
   border-radius: 15px;
-  color: var(--muted);
-  background: var(--cream);
+  color: #777;
+  background: #f7f7f8;
   cursor: pointer;
   text-align: center;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.document-file:hover {
+  border-color: #888;
+  background: #f2f2f3;
 }
 
 .document-file input {
@@ -725,7 +749,13 @@ onBeforeUnmount(stopPolling)
   margin-top: 3px;
   border-radius: 13px;
   color: #fff;
-  background: var(--ink);
+  background: #202123;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.document-primary:not(:disabled):hover {
+  background: #343541;
+  transform: translateY(-1px);
 }
 
 .document-primary:disabled,
@@ -745,7 +775,14 @@ onBeforeUnmount(stopPolling)
 .document-lookup button {
   height: 48px;
   border-radius: 11px;
-  background: var(--lime);
+  color: #303030;
+  background: #ececec;
+  transition: background 180ms ease, transform 180ms ease;
+}
+
+.document-lookup button:not(:disabled):hover {
+  background: #e2e2e2;
+  transform: translateY(-1px);
 }
 
 .document-result,
@@ -754,7 +791,8 @@ onBeforeUnmount(stopPolling)
   margin-top: 24px;
   padding: 24px;
   border-radius: 17px;
-  background: var(--cream);
+  border: 1px solid #e8e8e8;
+  background: #f7f7f8;
 }
 
 .document-result__top {
@@ -771,9 +809,9 @@ onBeforeUnmount(stopPolling)
 .document-status {
   flex: 0 0 auto;
   padding: 6px 9px;
-  border-radius: 999px;
-  color: #516315;
-  background: rgba(201, 242, 85, 0.58);
+  border-radius: 7px;
+  color: #17745b;
+  background: #e4f3ee;
   font-size: 10px;
   font-weight: 800;
 }
@@ -861,11 +899,11 @@ onBeforeUnmount(stopPolling)
   display: flex;
   justify-content: space-between;
   gap: 20px;
-  max-width: 1180px;
+  width: min(1180px, calc(100% - 40px));
   margin: 34px auto 0;
   padding-top: 20px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  border-top: 1px solid #e1e1e1;
+  color: #777;
   font-size: 11px;
 }
 
@@ -890,7 +928,7 @@ onBeforeUnmount(stopPolling)
     align-items: flex-start;
     flex-direction: column;
     gap: 28px;
-    margin-top: 44px;
+    margin-top: 36px;
   }
 
   .document-admin__flow {
@@ -908,12 +946,12 @@ onBeforeUnmount(stopPolling)
 
 @media (max-width: 480px) {
   .document-admin {
-    padding-inline: 14px;
+    padding-inline: 0;
   }
 
   .document-card {
     padding: 22px 18px;
-    border-radius: 18px;
+    border-radius: 14px;
   }
 
   .document-result dl {

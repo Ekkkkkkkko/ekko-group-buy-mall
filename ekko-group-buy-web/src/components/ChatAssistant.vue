@@ -106,13 +106,13 @@ defineExpose({ openChat })
     <Transition name="chat-panel">
       <section v-if="open" class="chat-panel" aria-label="小安客服对话框">
         <header>
-          <span class="chat-agent"><Headset :size="22" /></span>
+          <span class="chat-agent"><Headset :size="25" /></span>
           <div>
             <strong>小安</strong>
             <small><i aria-hidden="true"></i> 路由器选购助手 · 在线</small>
           </div>
           <button type="button" aria-label="关闭客服对话框" @click="open = false">
-            <X :size="21" />
+            <X :size="23" />
           </button>
         </header>
 
@@ -192,7 +192,7 @@ defineExpose({ openChat })
             placeholder="输入路由器参数、设置或故障问题"
           />
           <button type="submit" :disabled="busy || !draft.trim()" aria-label="发送消息">
-            <ArrowUp :size="22" />
+            <ArrowUp :size="24" />
           </button>
         </form>
       </section>
@@ -204,8 +204,8 @@ defineExpose({ openChat })
       :aria-label="open ? '关闭智能客服' : '打开智能客服'"
       @click="open = !open"
     >
-      <X v-if="open" :size="24" />
-      <MessageCircleMore v-else :size="27" />
+      <X v-if="open" :size="26" />
+      <MessageCircleMore v-else :size="30" />
       <span v-if="!open">问一问</span>
     </button>
   </div>

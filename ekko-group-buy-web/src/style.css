@@ -5223,53 +5223,54 @@ img {
 }
 
 .mall-page .chat-trigger {
-  min-width: 128px;
-  height: 56px;
-  padding: 0 20px;
+  min-width: 156px;
+  height: 66px;
+  padding: 0 24px;
   border: 0;
-  font-size: 14px;
+  border-radius: 20px;
+  font-size: 16px;
   box-shadow:
-    0 0 0 5px rgba(224, 46, 36, 0.09),
-    0 14px 34px rgba(116, 22, 16, 0.22);
+    0 0 0 6px rgba(224, 46, 36, 0.09),
+    0 18px 42px rgba(116, 22, 16, 0.22);
 }
 
 .mall-page .chat-shell.open .chat-trigger {
-  width: 50px;
-  min-width: 50px;
-  height: 50px;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
 }
 
 .mall-page .chat-panel {
-  width: min(520px, calc(100vw - 40px));
-  height: min(640px, calc(100dvh - 94px));
+  width: min(680px, calc(100vw - 40px));
+  height: min(780px, calc(100dvh - 106px));
   border: 1px solid #e4e4e4;
-  border-radius: 18px;
+  border-radius: 22px;
   background: #fff;
   box-shadow:
-    0 28px 70px rgba(84, 26, 21, 0.16),
-    0 5px 18px rgba(84, 26, 21, 0.08);
+    0 32px 80px rgba(84, 26, 21, 0.17),
+    0 6px 20px rgba(84, 26, 21, 0.08);
 }
 
 .mall-page .chat-panel::before {
   right: 0;
   left: 0;
   height: 3px;
-  border-radius: 18px 18px 0 0;
+  border-radius: 22px 22px 0 0;
   background: var(--mall-red);
 }
 
 .mall-page .chat-panel header {
-  min-height: 70px;
-  gap: 11px;
-  padding: 12px 14px 11px;
+  min-height: 82px;
+  gap: 13px;
+  padding: 14px 18px 13px;
   border-color: #ededed;
   background: #fff;
 }
 
 .mall-page .chat-agent {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   color: #fff;
   background: var(--mall-red);
   box-shadow: none;
@@ -5277,13 +5278,13 @@ img {
 
 .mall-page .chat-panel header strong {
   color: #282828;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 650;
 }
 
 .mall-page .chat-panel header small {
   color: #858585;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .mall-page .chat-panel header small i {
@@ -5292,10 +5293,10 @@ img {
 }
 
 .mall-page .chat-panel header > button {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   border-color: #e5e5e5;
-  border-radius: 9px;
+  border-radius: 11px;
   color: #555;
   background: #f7f7f7;
 }
@@ -5307,11 +5308,11 @@ img {
 }
 
 .mall-page .chat-body {
-  padding: 22px 18px 24px;
+  padding: 28px 24px 30px;
   color: #646464;
   background: #fff;
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
 .mall-page .chat-date {
@@ -5319,19 +5320,19 @@ img {
 }
 
 .mall-page .chat-system-message {
-  gap: 11px;
+  gap: 13px;
   max-width: 100%;
 }
 
 .mall-page .chat-message + .chat-message {
-  margin-top: 22px;
+  margin-top: 26px;
 }
 
 .mall-page .chat-message-avatar {
-  width: 28px;
-  height: 28px;
-  flex-basis: 28px;
-  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-radius: 9px;
   color: #fff;
   background: var(--mall-red);
 }
@@ -5343,7 +5344,7 @@ img {
 
 .mall-page .chat-system-message small {
   color: #777;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -5354,8 +5355,8 @@ img {
   color: #333;
   background: transparent;
   box-shadow: none;
-  font-size: 14px;
-  line-height: 1.72;
+  font-size: 15px;
+  line-height: 1.78;
 }
 
 .mall-page .chat-system-message--error p {
@@ -5392,18 +5393,18 @@ img {
 
 .mall-page .chat-suggestions {
   display: grid;
-  gap: 7px;
-  margin: 16px 0 0 39px;
+  gap: 9px;
+  margin: 20px 0 0 47px;
 }
 
 .mall-page .chat-suggestions button {
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 48px;
+  padding: 10px 15px;
   border-color: #e1e1e1;
-  border-radius: 9px;
+  border-radius: 11px;
   color: #484848;
   background: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   line-height: 1.45;
   text-align: left;
@@ -5425,28 +5426,28 @@ img {
 
 .mall-page .chat-preview-message > p {
   max-width: 80%;
-  padding: 10px 13px;
+  padding: 12px 15px;
   border-radius: 15px;
   color: #333;
   background: #f1f1f1;
 }
 
 .mall-page .chat-panel form {
-  grid-template-columns: minmax(0, 1fr) 42px;
-  gap: 8px;
-  padding: 11px 14px 14px;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 10px;
+  padding: 13px 18px 17px;
   border-color: #ededed;
   background: #fff;
 }
 
 .mall-page .chat-panel input {
-  height: 44px;
-  padding-inline: 14px;
+  height: 50px;
+  padding-inline: 16px;
   border-color: #dcdcdc;
-  border-radius: 12px;
+  border-radius: 14px;
   color: #333;
   background: #fafafa;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .mall-page .chat-panel input:focus {
@@ -5456,8 +5457,8 @@ img {
 }
 
 .mall-page .chat-panel form button {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   align-self: center;
   border-radius: 50%;
   background: var(--mall-red);
@@ -5478,20 +5479,21 @@ img {
   }
 
   .mall-page .chat-trigger {
-    min-width: 118px;
-    height: 52px;
-    padding-inline: 17px;
+    min-width: 132px;
+    height: 58px;
+    padding-inline: 19px;
+    font-size: 15px;
   }
 
   .mall-page .chat-shell.open .chat-trigger {
-    width: 46px;
-    min-width: 46px;
-    height: 46px;
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
   }
 
   .mall-page .chat-panel {
     width: calc(100vw - 32px);
-    height: min(660px, calc(100dvh - 74px));
+    height: min(700px, calc(100dvh - 82px));
     border-radius: 15px;
   }
 
@@ -5500,16 +5502,16 @@ img {
   }
 
   .mall-page .chat-panel header {
-    min-height: 64px;
-    padding-inline: 12px;
+    min-height: 70px;
+    padding-inline: 14px;
   }
 
   .mall-page .chat-body {
-    padding: 18px 14px 20px;
+    padding: 20px 15px 22px;
   }
 
   .mall-page .chat-suggestions {
-    margin-left: 37px;
+    margin-left: 43px;
   }
 
   .mall-page .chat-panel form {
