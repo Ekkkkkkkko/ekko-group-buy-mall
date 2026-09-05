@@ -3,6 +3,7 @@ import { ArrowUp, Headset, MessageCircleMore, X } from 'lucide-vue-next'
 import { nextTick, ref } from 'vue'
 import { askKnowledgeBaseStream } from '../api/knowledge'
 import MarkdownMessage from './MarkdownMessage.vue'
+import ChatSources from './ChatSources.vue'
 
 const open = ref(false)
 const draft = ref('')
@@ -144,28 +145,7 @@ defineExpose({ openChat })
                   <i></i><i></i><i></i>
                   <span>{{ message.progress || '正在生成回答' }}</span>
                 </p>
-                <ol v-if="message.sources.length" class="chat-source-list">
-                  <li v-for="(source, index) in message.sources" :key="`${message.id}-${index}`">
-                    <span>资料{{ index + 1 }}</span>
-                    {{ source.title || '相关产品资料' }}
-                    <div v-if="source.images?.length" class="chat-source-images">
-                      <a
-                        v-for="image in source.images"
-                        :key="image.imageId || image.url"
-                        :href="image.url"
-                        target="_blank"
-                        rel="noreferrer"
-                        :title="image.description || '查看资料图片'"
-                      >
-                        <img
-                          :src="image.url"
-                          :alt="image.description || '相关资料图片'"
-                          loading="lazy"
-                        />
-                      </a>
-                    </div>
-                  </li>
-                </ol>
+                <ChatSources :sources="message.sources" />
               </div>
             </div>
           </template>

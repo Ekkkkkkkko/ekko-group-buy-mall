@@ -36,7 +36,7 @@ public class ChatSourceMapper {
 
     private ChatSourceResponse toResponse(RetrievedChunk source) {
         List<ChatImageResponse> images = imageResolver.resolve(source.getText()).stream()
-                .map(image -> new ChatImageResponse(image.imageId(), image.description(), image.url()))
+                .map(image -> new ChatImageResponse(image.imageId(), image.description(), image.url(), image.sha256()))
                 .toList();
         return new ChatSourceResponse(
                 source.getDocumentId(), source.getChunkId(), source.getMatchedChunkId(), source.getTitle(),

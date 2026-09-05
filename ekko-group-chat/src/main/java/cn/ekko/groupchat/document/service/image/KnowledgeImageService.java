@@ -113,7 +113,7 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
         List<KnowledgeImageReference> result = new ArrayList<>();
         for (Long id : ids) {
             KnowledgeImage image = images.get(id);
-            if (image == null) {
+            if (image == null || isExcluded(image)) {
                 continue;
             }
             try {
@@ -122,7 +122,8 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
                         displayDescription(image),
                         ossClient.presignGet(
                                 image.getObjectKey(), properties.getImage().getSignedUrlExpiration()
-                        )
+                        ),
+                        image.getSha256()
                 ));
             } catch (RuntimeException exception) {
                 log.warn("生成知识图片签名地址失败, imageId={}", id, exception);
@@ -150,7 +151,7 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
             throw new IllegalStateException("保存知识图片记录失败: " + parsedImage.sourcePath());
         }
 
-        if (properties.getImage().isDescriptionEnabled()) {
+        if (!isExcluded(entity) && properties.getImage().isDescriptionEnabled()) {
             describe(document, entity);
         }
         return entity;
@@ -200,6 +201,9 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
             log.warn("Markdown 图片未在 MinerU ZIP 中找到: {}", target);
             return StringUtils.hasText(altText) ? "图片：" + normalize(altText) : "";
         }
+        if (isExcluded(image)) {
+            return "";
+        }
 
         String description = displayDescription(image);
         String conciseAlt = StringUtils.hasText(altText)
@@ -211,6 +215,12 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
         }
         // 图片标识与说明保持在同一 Markdown 原子块，避免自然边界切分时彼此分离。
         return imageTag + "\n> 图片说明：" + description;
+    }
+
+    private boolean isExcluded(KnowledgeImage image) {
+        return StringUtils.hasText(image.getSha256())
+                && properties.getImage().getExcludedSha256().stream()
+                .anyMatch(hash -> image.getSha256().equalsIgnoreCase(hash.trim()));
     }
 
     private String resolveLocalPath(String markdownPath, String target) {

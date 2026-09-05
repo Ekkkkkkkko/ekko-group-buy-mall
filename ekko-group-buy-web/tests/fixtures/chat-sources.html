@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>引用组件回归验证</title></head>
+<body>
+<main id="app"></main>
+<script type="module">
+  import { createApp, h } from 'vue'
+  import ChatSources from '../../src/components/ChatSources.vue'
+  const origin = location.origin
+  const hash = 'a'.repeat(64)
+  const sources = [
+    { documentId: 95, title: '路由器复位（恢复出厂设置）的操作方法', headingPath: '软件复位（管理界面操作）', images: [
+      { imageId: 1, sha256: hash, description: '回归测试用接线示意图', url: `${origin}/tests/fixtures/wiring.svg` },
+    ] },
+    { documentId: 95, title: '路由器复位（恢复出厂设置）的操作方法', headingPath: '复位前须知', images: [
+      { imageId: 2, description: '模拟失效图片', url: `${origin}/package.json` },
+    ] },
+    { documentId: 40, title: 'TL-7DR7270 V1.0快速安装指南 1.0.3', headingPath: '快速安装指南 > 易展按键', images: [
+      { imageId: 3, description: '模拟小图标', url: `${origin}/tests/fixtures/icon.svg` },
+      { imageId: 4, sha256: hash, description: '重复图片', url: `${origin}/tests/fixtures/wiring.svg?duplicate=1` },
+    ] },
+  ]
+  createApp({ render: () => h('article', [h('h1', '引用组件回归验证'), h('p', '期望：3 个分片合并为 2 篇资料；默认折叠；展开后仅显示 1 张正常示意图，失败图片、小图标和重复图片不占位。'), h(ChatSources, { sources })]) }).mount('#app')
+</script>
+<style>body{margin:0;color:#292929;background:#fff;font-family:Arial,sans-serif}main{max-width:720px;margin:40px auto;padding:20px}h1{font-size:22px}p{line-height:1.7}</style>
+</body>
+</html>

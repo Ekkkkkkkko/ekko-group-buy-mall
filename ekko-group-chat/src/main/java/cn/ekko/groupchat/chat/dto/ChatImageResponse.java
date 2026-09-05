@@ -11,4 +11,5 @@ public class ChatImageResponse {
     private final long imageId;
     private final String description;
     private final String url;
+    private final String sha256;
 }

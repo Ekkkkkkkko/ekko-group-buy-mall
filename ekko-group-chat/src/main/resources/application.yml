@@ -71,6 +71,8 @@ group-chat:
     description-version: ${CHAT_IMAGE_DESCRIPTION_VERSION:image-v1}
     signed-url-expiration: ${CHAT_IMAGE_SIGNED_URL_EXPIRATION:15m}
     max-images-per-document: ${CHAT_MAX_IMAGES_PER_DOCUMENT:50}
+    # 复位说明 PDF 内嵌的两张红叉占位图（并非网络加载失败）。按内容过滤，兼容已入库分片。
+    excluded-sha256: ${CHAT_IMAGE_EXCLUDED_SHA256:5ec9275e9ea879c9aecb84fb38106804d8fd4bbf19bbeb1c28c64693eb379be7,afae0387c75f4b3c87e53d9402c650b47fbee3c53b2e517e526a60458fd79fa5}
   elasticsearch:
     url: ${ELASTICSEARCH_URL:http://127.0.0.1:9200}
     username: ${ELASTICSEARCH_USERNAME:}

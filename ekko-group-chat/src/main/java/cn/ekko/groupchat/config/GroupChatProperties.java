@@ -81,6 +81,8 @@ public class GroupChatProperties {
         private String descriptionVersion = "image-v1";
         private Duration signedUrlExpiration = Duration.ofMinutes(15);
         private int maxImagesPerDocument = 50;
+        /** 已人工确认的无效占位图指纹，仅控制展示，不删除原始文档和图片。 */
+        private List<String> excludedSha256 = List.of();
 
     }
 

@@ -25,6 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -97,5 +99,75 @@ class KnowledgeImageServiceTest {
                 image.content(),
                 "image/png"
         );
+    }
+
+    @Test
+    void excludesConfirmedPlaceholderFromExistingChunksButKeepsUsefulUndescribedImages() {
+        GroupChatProperties properties = new GroupChatProperties();
+        properties.getImage().setExcludedSha256(List.of("placeholder-sha"));
+        KnowledgeImage placeholder = storedImage(594L, "placeholder-sha");
+        KnowledgeImage useful = storedImage(596L, "diagram-sha");
+        when(imageMapper.selectByIds(any())).thenReturn(List.of(placeholder, useful));
+        when(ossClient.presignGet("images/596.jpg", properties.getImage().getSignedUrlExpiration()))
+                .thenReturn("https://signed.example/diagram.jpg");
+
+        List<KnowledgeImageReference> result = service(properties).resolve(
+                "![](knowledge-image://594) ![](knowledge-image://596)"
+        );
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().imageId()).isEqualTo(596L);
+        assertThat(result.getFirst().sha256()).isEqualTo("diagram-sha");
+        verify(ossClient, never()).presignGet(org.mockito.ArgumentMatchers.eq("images/594.jpg"), any());
+    }
+
+    @Test
+    void retainsOriginalPlaceholderForTraceabilityButSkipsDescriptionAndNewMarkdownReference() {
+        GroupChatProperties properties = new GroupChatProperties();
+        properties.getImage().setExcludedSha256(List.of("placeholder-sha"));
+        when(imageMapper.insert(any(KnowledgeImage.class))).thenAnswer(invocation -> {
+            KnowledgeImage image = invocation.getArgument(0);
+            image.setId(594L);
+            return 1;
+        });
+        KnowledgeDocument document = new KnowledgeDocument();
+        document.setId(95L);
+        document.setSha256("doc-sha");
+        MineruParsedImage placeholder = new MineruParsedImage(
+                "images/placeholder.jpg", "placeholder.jpg", "image/jpeg", "jpg",
+                new byte[]{1}, "placeholder-sha"
+        );
+        ImageProcessingResult result = service(properties).process(document, new MineruParsedArchive(
+                "full.md", "复位前须知\n![](images/placeholder.jpg)", List.of(placeholder)
+        ));
+
+        assertThat(result.processedMarkdown()).contains("复位前须知").doesNotContain("knowledge-image://");
+        assertThat(result.imageCount()).isEqualTo(1);
+        verify(ossClient).put(anyString(), any(byte[].class), org.mockito.ArgumentMatchers.eq("image/jpeg"));
+        verifyNoInteractions(descriptionClient);
+    }
+
+    @Test
+    void signingFailureDoesNotPreventTextReferencesOrOtherImages() {
+        GroupChatProperties properties = new GroupChatProperties();
+        when(imageMapper.selectByIds(any())).thenReturn(List.of(storedImage(1L, "sha1"), storedImage(2L, "sha2")));
+        when(ossClient.presignGet("images/1.jpg", properties.getImage().getSignedUrlExpiration()))
+                .thenThrow(new IllegalStateException("OSS unavailable"));
+        when(ossClient.presignGet("images/2.jpg", properties.getImage().getSignedUrlExpiration()))
+                .thenReturn("https://signed.example/2.jpg");
+        assertThat(service(properties).resolve("![](knowledge-image://1) ![](knowledge-image://2)"))
+                .extracting(KnowledgeImageReference::imageId).containsExactly(2L);
+    }
+
+    private KnowledgeImageService service(GroupChatProperties properties) {
+        return new KnowledgeImageService(imageMapper, chunkImageMapper, ossClient, descriptionClient, properties);
+    }
+
+    private KnowledgeImage storedImage(long id, String sha) {
+        KnowledgeImage image = new KnowledgeImage();
+        image.setId(id);
+        image.setSha256(sha);
+        image.setObjectKey("images/" + id + ".jpg");
+        return image;
     }
 }
