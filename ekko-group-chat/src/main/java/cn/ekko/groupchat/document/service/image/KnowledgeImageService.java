@@ -146,7 +146,10 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
         entity.setAltText(truncate(normalize(altText), MAX_ALT_LENGTH));
         entity.setDescriptionModel(properties.getImage().getVisionModel());
         entity.setDescriptionVersion(properties.getImage().getDescriptionVersion());
-        entity.setStatus(KnowledgeImageStatus.STORED);
+        entity.setStatus(isExcludedSha256(entity.getSha256())
+                || RedPlaceholderImageDetector.isPlaceholder(parsedImage.content())
+                ? KnowledgeImageStatus.EXCLUDED
+                : KnowledgeImageStatus.STORED);
         if (imageMapper.insert(entity) != 1 || entity.getId() == null) {
             throw new IllegalStateException("保存知识图片记录失败: " + parsedImage.sourcePath());
         }
@@ -218,9 +221,13 @@ public class KnowledgeImageService implements KnowledgeImageResolver {
     }
 
     private boolean isExcluded(KnowledgeImage image) {
-        return StringUtils.hasText(image.getSha256())
+        return image.getStatus() == KnowledgeImageStatus.EXCLUDED || isExcludedSha256(image.getSha256());
+    }
+
+    private boolean isExcludedSha256(String sha256) {
+        return StringUtils.hasText(sha256)
                 && properties.getImage().getExcludedSha256().stream()
-                .anyMatch(hash -> image.getSha256().equalsIgnoreCase(hash.trim()));
+                .anyMatch(hash -> sha256.equalsIgnoreCase(hash.trim()));
     }
 
     private String resolveLocalPath(String markdownPath, String target) {

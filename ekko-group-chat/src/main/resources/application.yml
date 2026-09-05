@@ -71,8 +71,8 @@ group-chat:
     description-version: ${CHAT_IMAGE_DESCRIPTION_VERSION:image-v1}
     signed-url-expiration: ${CHAT_IMAGE_SIGNED_URL_EXPIRATION:15m}
     max-images-per-document: ${CHAT_MAX_IMAGES_PER_DOCUMENT:50}
-    # 复位说明 PDF 内嵌的两张红叉占位图（并非网络加载失败）。按内容过滤，兼容已入库分片。
-    excluded-sha256: ${CHAT_IMAGE_EXCLUDED_SHA256:5ec9275e9ea879c9aecb84fb38106804d8fd4bbf19bbeb1c28c64693eb379be7,afae0387c75f4b3c87e53d9402c650b47fbee3c53b2e517e526a60458fd79fa5}
+    # 全库审计确认的 7 张 MinerU 红叉占位图。按内容过滤，兼容已入库分片；新导入时另有图形识别兜底。
+    excluded-sha256: ${CHAT_IMAGE_EXCLUDED_SHA256:5ec9275e9ea879c9aecb84fb38106804d8fd4bbf19bbeb1c28c64693eb379be7,afae0387c75f4b3c87e53d9402c650b47fbee3c53b2e517e526a60458fd79fa5,dd5d2cf6acb65663f8de72b8eb7bc17612467cd84753fb4cb7c52ffeba05d33e,6e04effba1617ffc0c21b0b0f6b4530b5def0751e9521e9fb8e00687c1ec1cf7,603125f270c30ec4347471df938f8b55d9a3a06f228ff0d00882a658edb9ecf4,dd1eef36fff7b04f01a83eb64395fef38b80c72fde98cdf5fca0749a61136bd0,156624ca1829f995585dd288d1b26961a1ed31c743437efb23213c1f3f021565}
   elasticsearch:
     url: ${ELASTICSEARCH_URL:http://127.0.0.1:9200}
     username: ${ELASTICSEARCH_USERNAME:}

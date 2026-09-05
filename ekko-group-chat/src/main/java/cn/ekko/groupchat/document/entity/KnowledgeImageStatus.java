@@ -4,5 +4,7 @@ package cn.ekko.groupchat.document.entity;
 public enum KnowledgeImageStatus {
     STORED,
     DESCRIBED,
-    DESCRIPTION_FAILED
+    DESCRIPTION_FAILED,
+    /** MinerU embedded an invalid visual placeholder; keep the source record but never index or display it. */
+    EXCLUDED
 }

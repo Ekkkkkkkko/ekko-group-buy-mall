@@ -7,6 +7,7 @@ import cn.ekko.groupchat.document.client.MineruParsedArchive;
 import cn.ekko.groupchat.document.client.MineruParsedImage;
 import cn.ekko.groupchat.document.entity.KnowledgeDocument;
 import cn.ekko.groupchat.document.entity.KnowledgeImage;
+import cn.ekko.groupchat.document.entity.KnowledgeImageStatus;
 import cn.ekko.groupchat.document.mapper.KnowledgeChunkImageMapper;
 import cn.ekko.groupchat.document.mapper.KnowledgeImageMapper;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
@@ -18,7 +19,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.imageio.ImageIO;
 import java.time.Duration;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,6 +154,28 @@ class KnowledgeImageServiceTest {
     }
 
     @Test
+    void excludesNewMineruRedGlyphWithoutRequiringItsSha256ToBePreconfigured() throws Exception {
+        when(imageMapper.insert(any(KnowledgeImage.class))).thenAnswer(invocation -> {
+            KnowledgeImage image = invocation.getArgument(0);
+            image.setId(700L);
+            return 1;
+        });
+        MineruParsedImage placeholder = new MineruParsedImage(
+                "images/red-x.png", "red-x.png", "image/png", "png", redBrokenImageGlyph(), "new-sha"
+        );
+
+        ImageProcessingResult result = service(new GroupChatProperties()).process(document(96L), new MineruParsedArchive(
+                "full.md", "说明\n![](images/red-x.png)", List.of(placeholder)
+        ));
+
+        assertThat(result.processedMarkdown()).contains("说明").doesNotContain("knowledge-image://");
+        verify(imageMapper).insert(org.mockito.ArgumentMatchers.<KnowledgeImage>argThat(
+                image -> image.getStatus() == KnowledgeImageStatus.EXCLUDED
+        ));
+        verifyNoInteractions(descriptionClient);
+    }
+
+    @Test
     void signingFailureDoesNotPreventTextReferencesOrOtherImages() {
         GroupChatProperties properties = new GroupChatProperties();
         when(imageMapper.selectByIds(any())).thenReturn(List.of(storedImage(1L, "sha1"), storedImage(2L, "sha2")));
@@ -169,5 +197,29 @@ class KnowledgeImageServiceTest {
         image.setSha256(sha);
         image.setObjectKey("images/" + id + ".jpg");
         return image;
+    }
+
+    private KnowledgeDocument document(long id) {
+        KnowledgeDocument document = new KnowledgeDocument();
+        document.setId(id);
+        document.setSha256("doc-sha");
+        return document;
+    }
+
+    private byte[] redBrokenImageGlyph() throws Exception {
+        BufferedImage image = new BufferedImage(300, 300, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.WHITE);
+        graphics.fillRect(0, 0, 300, 300);
+        graphics.setColor(Color.RED);
+        graphics.fillRect(80, 90, 42, 25);
+        graphics.fillRect(178, 90, 42, 25);
+        graphics.fillRect(108, 110, 84, 80);
+        graphics.fillRect(80, 185, 42, 25);
+        graphics.fillRect(178, 185, 42, 25);
+        graphics.dispose();
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", output);
+        return output.toByteArray();
     }
 }
